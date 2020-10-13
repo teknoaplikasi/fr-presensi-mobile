@@ -1,19 +1,19 @@
 import React from 'react'
 import { View, Text } from 'react-native'
 import { createStackNavigator } from '@react-navigation/stack'
-import HomeIndex from './screens/HomeIndex'
+import RegisterIndex from './screens/RegisterIndex'
 
 const Stack = createStackNavigator()
 function HomeRouter() {
   return (
     <Stack.Navigator
-      initialRouteName="HomeIndex"
+      initialRouteName="RegisterIndex"
     >
       <Stack.Screen
-        name="HomeIndex"
-        component={HomeIndex}
+        name="RegisterIndex"
+        component={RegisterIndex}
         options={{
-          title: 'Face Recognition'
+          title: 'Register Face'
         }}
       />
     </Stack.Navigator>
