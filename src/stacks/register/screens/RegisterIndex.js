@@ -5,6 +5,7 @@ import { TouchableOpacity } from 'react-native-gesture-handler'
 
 import { responsiveWidth as w, responsiveHeight as h, responsiveFontSize as fs } from 'react-native-responsive-dimensions'
 import { API } from '../../../utils/Api'
+import Icon from 'react-native-vector-icons/FontAwesome5'
 
 export class RegisterIndex extends Component {
   constructor() {
@@ -17,6 +18,12 @@ export class RegisterIndex extends Component {
 
     this.takePicture = this.takePicture.bind(this)
     this.registerImage = this.registerImage.bind(this)
+  }
+
+  componentDidMount = () => {
+    this.props.navigation.setOptions({
+      tabBarVisible: false
+    })
   }
 
   takePicture = async () => {
@@ -38,60 +45,13 @@ export class RegisterIndex extends Component {
   render() {
     return (
       <React.Fragment>
-        {this.state.mode == 'preview' &&
-          <ImageBackground
-            source={{ uri: this.state.image.uri }}
-            style={{
-              width: w(100),
-              height: h(100)
+        <View>
+          <Button
+            title="Register"
+            onPress={() => {
+              this.props.navigation.navigate('RegisterFace')
             }}
-          >
-            <Button
-              title="Upload"
-              onPress={this.registerImage}
-            />
-
-            <Button
-              title="Retake"
-              onPress={() => {
-                this.setState({ mode: 'waiting' })
-              }}
-            />
-          </ImageBackground>
-
-        }
-        <View style={styles.container}>
-          <RNCamera
-            ref={ref => {
-              this.camera = ref
-            }}
-            type={RNCamera.Constants.Type.front}
-            style={styles.cameraView}
-            androidCameraPermissionOptions={{
-              title: 'Permission to use Camera',
-              message: 'App name need your permission to use camera',
-              buttonPositive: 'Grant',
-              buttonNegative: 'Deny'
-            }}
-          >
-            {/* <Button
-              title="Take Picture"
-              onPress={this.takePicture}
-            /> */}
-
-
-            <TouchableOpacity style={{
-              backgroundColor: 'rgba(0,0,0,.5)',
-              borderRadius: w(15),
-              width: w(30),
-              height: w(30),
-              position: 'absolute',
-              // left: w(0),
-              // top: h(50)
-            }}>
-              <Text>Test</Text>
-            </TouchableOpacity>
-          </RNCamera>
+          />
         </View>
       </React.Fragment>
     )
@@ -109,8 +69,8 @@ const styles = StyleSheet.create({
   cameraView: {
     width: '100%',
     height: '100%',
-    backgroundColor: 'gray',
     position: 'relative'
+    // flexDirection: 'row',
   }
 })
 

@@ -11,6 +11,12 @@ target 'FaceRecognition' do
 
   pod 'react-native-camera', :path => '../node_modules/react-native-camera'
 
+  pod 'RNSVG', :path => '../node_modules/react-native-svg'
+
+  pod 'RNFS', :path => '../node_modules/react-native-fs'
+
+  pod 'react-native-geolocation', :path => '../node_modules/@react-native-community/geolocation'
+
   target 'FaceRecognitionTests' do
     inherit! :complete
     # Pods for testing

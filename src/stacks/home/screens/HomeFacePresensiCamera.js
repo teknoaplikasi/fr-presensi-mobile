@@ -1,0 +1,582 @@
+import React, { Component } from 'react'
+import { Text, View, StyleSheet, ImageBackground, ToastAndroid, StatusBar, ActivityIndicator, Image, Modal } from 'react-native'
+import { Button } from 'native-base'
+import { RNCamera } from 'react-native-camera'
+import { TouchableOpacity } from 'react-native-gesture-handler'
+
+import { responsiveWidth as w, responsiveHeight as h, responsiveFontSize as fs } from 'react-native-responsive-dimensions'
+import { API } from '../../../utils/Api'
+import Icon from 'react-native-vector-icons/FontAwesome5'
+import { useHeaderHeight } from '@react-navigation/stack'
+import { AzureFaceAPI } from '../../../utils/Azure'
+import { AZURE_BASE_URL, AZURE_KEY } from '../../../../config'
+import RNFS from 'react-native-fs'
+import Chip from '../../../components/Chip'
+import Geolocation from '@react-native-community/geolocation'
+import { geocodeLatLong, geofenceRadius } from '../../../utils/GeolocationHelper'
+import { simpleToast } from '../../../utils/DisplayHelper'
+import { connect } from 'react-redux'
+import moment from 'moment'
+
+export class HomeFacePresensiCamera extends Component {
+  constructor() {
+    super()
+
+    this.state = {
+      mode: 'waiting',
+      status: 'Place your face inside rectangle',
+      image: null,
+      registerStatus: null,
+      registerStatusMsg: 'Presensi gagal dilakukan',
+      location: {
+        latitude: null,
+        longitude: null,
+        detail: ''
+      },
+      alertLocation: false
+    }
+
+    this.takePicture = this.takePicture.bind(this)
+    this.registerImage = this.registerImage.bind(this)
+    this.getCurrentLocation = this.getCurrentLocation.bind(this)
+    this.validateLocation = this.validateLocation.bind(this)
+  }
+
+  componentDidMount = () => {
+    // this.initValue()
+    // this.getCurrentLocation()
+
+    this.isFocus = this.props.navigation.addListener('focus', () => {
+      // this.camera.
+      this.initValue()
+      this.getCurrentLocation()
+    })
+  }
+
+  initValue = async () => {
+    StatusBar.setBackgroundColor('#ffac1f')
+    StatusBar.setBarStyle('light-content')
+
+
+    // StatusBar.setHidden(true)
+  }
+
+  getCurrentLocation = async () => {
+    // Geolocation.getCurrentPosition((position, err) => {
+    //   if (err) {
+    //     console.log('err', err)
+    //   }
+    //   console.log('position', position)
+    // })
+
+    Geolocation.getCurrentPosition(async (position) => {
+      console.log('watch', position)
+      if (!position.coords.latitude || !position.coords.longitude) return
+      await this.setState(prevState => ({
+        location: {
+          ...prevState.location,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        }
+      }))
+      this.validateLocation()
+    })
+  }
+
+  componentWillUnmount() {
+    // this.camera
+  }
+
+  validateLocation = async () => {
+    // const { latitude, longitude } = this.state
+    console.log('test')
+    if (!this.props.auth.company.latitude || !this.props.auth.company.longitude) {
+      return simpleToast('Lokasi perusahaan belum diatur. Hubungi admin')
+    }
+
+    const companyCoord = {
+      latitude: parseFloat(this.props.auth.company.latitude),
+      longitude: parseFloat(this.props.auth.company.longitude)
+    }
+
+    const deviceCoord = {
+      latitude: this.state.location.latitude,
+      longitude: this.state.location.longitude
+    }
+
+    console.log(deviceCoord)
+    const isValid = await geofenceRadius(companyCoord, deviceCoord, parseInt(this.props.auth.company.radius))
+
+    console.log('isvalid', isValid)
+    // validate device coord
+    if (!isValid) {
+      return this.setState({
+        alertLocation: true
+      })
+    }
+
+    const locationDetail = await geocodeLatLong(this.state.location.latitude, this.state.location.longitude)
+
+    // return simpleToast(JSON.stringify(locationDetail))
+    this.setState(prevState => ({
+      location: {
+        ...prevState.location,
+        detail: locationDetail.result
+      }
+    }))
+
+    console.log('after update', this.state.location)
+  }
+
+  takePicture = async () => {
+    if (this.camera) {
+      const options = { quality: 0.2, base64: false }
+      const data = await this.camera.takePictureAsync(options)
+      this.setState({ image: data }, () => {
+        this.faceRecognize()
+      })
+
+    }
+  }
+
+  registerImage = async () => {
+    let upload = await AzureFaceAPI.detect(this.state.image.uri)
+    this.setState({ registerStatus: upload.success })
+
+    if (upload.success) {
+      // return this.presentToast(JSON.stringify(upload.result))
+      console.log(upload.result)
+    }
+
+    else {
+      // return this.presentToast('Failed')
+      // console.log(JSON.stringify(upload))
+      return this.presentToast(upload.error.error_message)
+    }
+  }
+
+  faceRecognize = async () => {
+    const face1 = this.props.auth.faceId ? this.props.auth.faceId : 'd5998bbf-3d37-405c-8e1b-392cdd893d8a'
+    let faceId2 = await AzureFaceAPI.detect(this.state.image.uri)
+    this.setState({ registerStatus: faceId2.success, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
+
+    if (!faceId2.success)
+      return simpleToast(faceId2.error.error_message)
+
+    if (faceId2.result.length == 0) {
+      this.setState({ registerStatus: faceId2.success, registerStatusMsg: 'Presensi gagal, tidak ada wajah terdeteksi' })
+      return simpleToast('Tidak ada wajah terdeteksi')
+    }
+    const faceIdStr = faceId2.result[0].faceId
+
+    let faceVerify = await AzureFaceAPI.verify(face1, faceIdStr)
+    if (!faceVerify.success) {
+      this.setState({ registerStatus: faceVerify.success, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
+      return simpleToast(faceVerify.error_message)
+    }
+
+    //success
+    // console.log(faceVerify)
+    if (!faceVerify.result.valid) {
+      this.setState({ registerStatus: faceVerify.result.valid, registerStatusMsg: 'Presensi gagal. Face ID tidak terdaftar' })
+      return simpleToast('Wajah Tidak Valid!')
+    }
+    let presensi = this.props.presensi
+
+    let flagPresensi = 'O'
+    if (!presensi.last_presensi.tanggal)
+      flagPresensi = 'I'
+    if (presensi.last_presensi.tanggal && presensi.last_presensi.tanggal != moment(presensi.last_presensi.tanggal).format('YYYY-MM-DD'))
+      flagPresensi = 'I'
+    if (presensi.last_presensi.tanggal && presensi.last_presensi.tanggal == moment().format('YYYY-MM-DD') && presensi.last_presensi.flag != 'I')
+      flagPresensi = 'I'
+    const payload = {
+      perusahaan_id: parseInt(this.props.auth.profile.perusahaan_id),
+      tanggal: moment().format('YYYY-MM-DD'),
+      jam: moment().format('HH:mm:ss'),
+      latitude: this.state.location.latitude,
+      longitude: this.state.location.longitude,
+      flag: flagPresensi,
+      lokasi: this.state.location.detail
+    }
+
+    // alert(JSON.stringify(payload))
+
+    let submit = await API.postDev('add/kehadiran', true, payload)
+    if (!submit.success) {
+      // alert(JSON.stringify(submit))
+      return simpleToast(submit.failureMessage)
+    }
+
+    // console.log(flagPresensi)
+    // this.setState({ registerStatus: false, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
+    simpleToast('Wajah anda valid')
+    this.props.setLastPresensi(payload)
+    this.props.navigation.pop()
+
+
+    // alert(JSON.stringify(payload))
+  }
+
+  presentToast = (message) => {
+    return ToastAndroid.showWithGravity(
+      message,
+      ToastAndroid.SHORT,
+      ToastAndroid.BOTTOM
+    )
+  }
+
+  renderModal() {
+
+    // const { home, hideLogoutAlert } = this.props
+    // const { blockBHeight, blockA, mode, scheme, logoutModalVisible } = this.state
+    const primaryText = '#705499'
+    const buttonColor = '#6200ee'
+    return (
+      <Modal
+        testID={'modal'}
+        isVisible={true}
+        onBackButtonPress={() => {
+          this.setState({
+            alertLocation: false,
+          }, () => {
+            this.props.navigation.pop()
+          })
+        }}
+        backdropColor="rgba(0,0,0,.5)"
+        backdropOpacity={0.8}
+        animationIn="zoomInDown"
+        animationOut="zoomOutUp"
+        animationInTiming={400}
+        animationOutTiming={400}
+        backdropTransitionInTiming={400}
+        backdropTransitionOutTiming={600}
+        transparent
+      >
+        <View
+          style={{
+            backgroundColor: 'rgba(0,0,0,.5)',
+            width: w(100),
+            height: h(100),
+            flex: 1,
+            flexDirection: 'column',
+            height: h(100),
+            justifyContent: 'center',
+            alignSelf: 'center',
+          }}
+        >
+          <View
+            style={{
+              width: w(80),
+              height: 'auto',
+              backgroundColor: 'white',
+              paddingHorizontal: fs(5),
+              borderRadius: fs(2),
+              paddingVertical: fs(5),
+              alignSelf: 'center'
+            }}
+          >
+            <Text style={{ fontWeight: 'bold', fontSize: fs(2.8), textAlign: 'center' }}>Presensi Ditolak</Text>
+            <Text style={{ marginTop: fs(2), fontSize: fs(1.7), textAlign: 'center' }}>Presensi hanya dapat dilakukan radius {this.props.auth.company.radius} meter dari lokasi perusahaan. Pastikan blabla dan coba lagi</Text>
+            <View style={{
+              paddingTop: fs(5),
+              flexDirection: 'column',
+              // justifyContent: '',
+              width: '100%',
+            }}>
+
+              <Button
+                style={{
+                  backgroundColor: buttonColor,
+                  width: '100%',
+                  justifyContent: 'center',
+                  borderRadius: 5
+                }}
+
+                onPress={() => {
+                  this.setState({
+                    alertLocation: !this.state.alertLocation,
+                    mode: 'preview',
+                    image: null,
+                    // alertLocation: 
+                  }, () => {
+                    this.getCurrentLocation()
+                  })
+                }}
+              >
+                <Text style={{ color: 'white' }}>Ulangi</Text>
+              </Button>
+              <Button
+                style={{
+                  backgroundColor: '#fafafa',
+                  width: '100%',
+                  justifyContent: 'center',
+                  borderRadius: 5,
+                  marginTop: fs(1.5)
+                }}
+
+                onPress={() => {
+                  this.setState({ alertLocation: false }, () => {
+
+                    this.props.navigation.pop()
+                  })
+                }}
+              >
+                <Text style={{ color: 'black' }}>Kembali</Text>
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    )
+  }
+
+  _renderImagePreview() {
+    return (
+      <ImageBackground
+        source={{ uri: this.state.image.uri }}
+        style={{
+          width: w(100),
+          position: 'relative',
+          height: h(100)
+        }}
+      >
+
+        <View style={{
+          position: 'absolute',
+          bottom: h(15),
+          left: w(50 - 12.5)
+        }}>
+          <TouchableOpacity onPress={this.registerImage} style={{
+            backgroundColor: 'green',
+            borderRadius: w(12.5),
+            width: w(25),
+            height: w(25),
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <Icon name="check" color="#ffffff" size={fs(5)} style={{ alignSelf: 'center' }} />
+          </TouchableOpacity>
+
+
+        </View>
+
+
+
+        <View style={{
+          position: 'absolute',
+          bottom: h(17),
+          right: w(10)
+        }}>
+          <TouchableOpacity onPress={() =>
+            this.setState({ mode: 'waiting' })} style={{
+              backgroundColor: 'white',
+              borderRadius: w(12.5),
+              width: w(12),
+              height: w(12),
+              display: 'flex',
+              justifyContent: 'center'
+            }}>
+            <Icon name="redo-alt" color="grey" size={fs(3)} style={{ alignSelf: 'center' }} />
+          </TouchableOpacity>
+
+
+        </View>
+      </ImageBackground>
+    )
+  }
+
+  render() {
+    // const headerHeight = useHeaderHeight()
+    return (
+      <React.Fragment>
+        {this.state.mode == 'previewnn' && this._renderImagePreview()}
+        <View style={styles.container}>
+          <RNCamera
+            ref={ref => {
+              this.camera = ref
+            }}
+            type={RNCamera.Constants.Type.front}
+            style={styles.cameraView}
+            whiteBalance={RNCamera.Constants.WhiteBalance.auto}
+            playSoundOnCapture={false}
+            androidCameraPermissionOptions={{
+              title: 'Permission to use Camera',
+              message: 'App name need your permission to use camera',
+              buttonPositive: 'Grant',
+              buttonNegative: 'Deny'
+            }}
+            onFacesDetected={(face) => {
+              // console.log('face', face.faces[0])
+              if (!this.state.alertLocation && this.state.mode == 'waiting' && face.faces[0].rollAngle < 3 && face.faces[0].rollAngle > -3 && face.faces[0].rightEyeOpenProbability > 0.8 && face.faces[0].leftEyeOpenProbability > 0.8 && face.faces[0].yawAngle < 3 && face.faces[0].yawAngle > -3) {
+                this.setState({ mode: 'preview', status: 'Analyze your face' }, () => {
+                  this.takePicture()
+                })
+              }
+            }}
+            faceDetectionClassifications={RNCamera.Constants.FaceDetection.Classifications.all}
+            faceDetectionMode={RNCamera.Constants.FaceDetection.Mode.fast}
+          >
+
+
+            <ImageBackground
+              source={require('../../../../assets/images/face-recognition-camera.png')}
+              style={{
+                width: w(100),
+                height: h(100),
+              }}
+            >
+              {this.state.mode == 'preview' && this.state.image &&
+                <ImageBackground
+
+                  source={{ uri: this.state.image.uri }}
+                  style={{
+                    width: w(100),
+                    height: h(100),
+                    zIndex: -1,
+                    transform: [
+                      { rotateY: "180deg" }
+                    ]
+                  }}
+                >
+
+                </ImageBackground>
+              }
+              {this.state.registerStatus == null && <View
+                style={{
+                  position: 'absolute',
+                  top: h(50),
+                  width: w(100),
+                  alignItems: 'center',
+                  transform: [
+                    { translateY: fs(-28) }
+                  ]
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: 'row'
+                  }}
+                >
+                  {this.state.mode == 'preview' && <ActivityIndicator
+                    color="#ffac1f"
+                    style={{
+                      alignSelf: 'flex-start',
+                      marginRight: fs(1)
+                    }}
+                  />}
+                  <Text
+                    style={{
+                      color: '#ffac1f',
+                      textAlign: 'center',
+                      alignSelf: 'flex-end'
+                    }}
+                  >{this.state.status}</Text>
+                </View>
+              </View>}
+
+
+              {this.state.alertLocation ? this.renderModal() : null}
+              {this.state.registerStatus &&
+                <View
+                  style={{
+                    marginTop: fs(4),
+                    position: 'absolute',
+                    top: h(50),
+                    width: w(100),
+                    alignItems: 'center',
+                    transform: [
+                      { translateY: fs(25) }
+                    ]
+                  }}
+                >
+                  <Chip
+                    bgColor="#ffac1f"
+                    textColor="#000"
+                    icon="smile"
+                    text="Presensi berhasil"
+                  />
+                </View>
+              }
+
+              {this.state.mode == 'preview' && this.state.registerStatus == false &&
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: h(50),
+                    width: w(100),
+                    alignItems: 'center',
+                    flexDirection: 'column',
+                    transform: [
+                      { translateY: fs(25) }
+                    ]
+                  }}
+                >
+                  <View>
+                    <Chip
+                      bgColor="#ff0000"
+                      textColor="#fff"
+                      icon="frown"
+                      text={this.state.registerStatusMsg}
+                    />
+                  </View>
+
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      this.setState({
+                        mode: 'waiting',
+                        image: null,
+                        registerStatus: null,
+                        status: 'Place your face inside rectangle'
+                      })
+                    }}
+                  >
+
+                    <Chip
+                      bgColor="#fff"
+                      textColor="#000"
+                      icon="redo-alt"
+                      text="ULANGI"
+                    />
+                  </TouchableOpacity>
+                </View>
+
+              }
+
+            </ImageBackground>
+          </RNCamera>
+        </View>
+      </React.Fragment>
+    )
+  }
+}
+
+const styles = StyleSheet.create({
+  container: {
+    width: w(100),
+    height: h(100),
+    display: 'flex'
+
+  },
+
+  cameraView: {
+    width: '100%',
+    height: '100%',
+    position: 'relative'
+    // flexDirection: 'row',
+  }
+})
+
+const mapStateToProps = (state) => ({
+  auth: state.auth,
+  presensi: state.presensi
+})
+
+const mapDispatchToProps = dispatch => {
+  return {
+    setLastPresensi: (payload) => dispatch({ type: 'SET_LAST_PRESENSI', payload: payload })
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(HomeFacePresensiCamera)
