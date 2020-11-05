@@ -16,6 +16,7 @@ import Geolocation from '@react-native-community/geolocation'
 import { geocodeLatLong, geofenceRadius } from '../../../utils/GeolocationHelper'
 import { simpleToast } from '../../../utils/DisplayHelper'
 import { connect } from 'react-redux'
+import Sound from 'react-native-sound'
 import moment from 'moment'
 
 export class HomeFacePresensiCamera extends Component {
@@ -40,11 +41,15 @@ export class HomeFacePresensiCamera extends Component {
     this.registerImage = this.registerImage.bind(this)
     this.getCurrentLocation = this.getCurrentLocation.bind(this)
     this.validateLocation = this.validateLocation.bind(this)
+
+    this.beep = new Sound(require('../../../../assets/sound/beep.wav'))
   }
 
   componentDidMount = () => {
     // this.initValue()
     // this.getCurrentLocation()
+    this.initValue()
+    this.getCurrentLocation()
 
     this.isFocus = this.props.navigation.addListener('focus', () => {
       // this.camera.
@@ -69,14 +74,14 @@ export class HomeFacePresensiCamera extends Component {
     //   console.log('position', position)
     // })
 
-    Geolocation.getCurrentPosition(async (position) => {
-      console.log('watch', position)
-      if (!position.coords.latitude || !position.coords.longitude) return
+    Geolocation.getCurrentPosition(async ({ coords }) => {
+      console.log('watch', coords)
+      // if (!position.coords.latitude || !position.coords.longitude) return
       await this.setState(prevState => ({
         location: {
           ...prevState.location,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
+          latitude: coords.latitude,
+          longitude: coords.longitude
         }
       }))
       this.validateLocation()
@@ -84,7 +89,8 @@ export class HomeFacePresensiCamera extends Component {
   }
 
   componentWillUnmount() {
-    // this.camera
+    this.camera
+    this.isFocus()
   }
 
   validateLocation = async () => {
@@ -156,66 +162,79 @@ export class HomeFacePresensiCamera extends Component {
   }
 
   faceRecognize = async () => {
-    const face1 = this.props.auth.faceId ? this.props.auth.faceId : 'd5998bbf-3d37-405c-8e1b-392cdd893d8a'
+
+    if (!this.props.auth.company.latitude || !this.props.auth.company.longitude) {
+      return this.setState({
+        registerStatus: false,
+        registerStatusMsg: 'Lokasi perusahaan belum diatur. Hubungi admin'
+      })
+    }
+    const face1 = this.props.auth.faceId
+    if (!face1 && typeof (this.props.auth.faceId != 'string')) {
+      return this.setState({ registerStatus: false, registerStatusMsg: 'Presensi gagal. Silahkan hubungi admin' })
+    }
     let faceId2 = await AzureFaceAPI.detect(this.state.image.uri)
-    this.setState({ registerStatus: faceId2.success, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
+    // this.setState({ registerStatus: faceId2.success, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
 
     if (!faceId2.success)
-      return simpleToast(faceId2.error.error_message)
+      return this.setState({ registerStatus: faceId2.success, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
 
     if (faceId2.result.length == 0) {
-      this.setState({ registerStatus: faceId2.success, registerStatusMsg: 'Presensi gagal, tidak ada wajah terdeteksi' })
-      return simpleToast('Tidak ada wajah terdeteksi')
+      return this.setState({ registerStatus: faceId2.success, registerStatusMsg: 'Presensi gagal, tidak ada wajah terdeteksi' })
     }
     const faceIdStr = faceId2.result[0].faceId
+    console.log('face id 2', faceIdStr)
 
     let faceVerify = await AzureFaceAPI.verify(face1, faceIdStr)
     if (!faceVerify.success) {
-      this.setState({ registerStatus: faceVerify.success, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
-      return simpleToast(faceVerify.error_message)
+      return this.setState({ registerStatus: faceVerify.success, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
+
     }
 
     //success
     // console.log(faceVerify)
     if (!faceVerify.result.valid) {
-      this.setState({ registerStatus: faceVerify.result.valid, registerStatusMsg: 'Presensi gagal. Face ID tidak terdaftar' })
-      return simpleToast('Wajah Tidak Valid!')
+      return this.setState({ registerStatus: faceVerify.result.valid, registerStatusMsg: 'Presensi gagal. Face ID tidak terdaftar' })
+      // return simpleToast('Wajah Tidak Valid!')
     }
-    let presensi = this.props.presensi
 
-    let flagPresensi = 'O'
-    if (!presensi.last_presensi.tanggal)
-      flagPresensi = 'I'
-    if (presensi.last_presensi.tanggal && presensi.last_presensi.tanggal != moment(presensi.last_presensi.tanggal).format('YYYY-MM-DD'))
-      flagPresensi = 'I'
-    if (presensi.last_presensi.tanggal && presensi.last_presensi.tanggal == moment().format('YYYY-MM-DD') && presensi.last_presensi.flag != 'I')
-      flagPresensi = 'I'
     const payload = {
       perusahaan_id: parseInt(this.props.auth.profile.perusahaan_id),
       tanggal: moment().format('YYYY-MM-DD'),
       jam: moment().format('HH:mm:ss'),
       latitude: this.state.location.latitude,
       longitude: this.state.location.longitude,
-      flag: flagPresensi,
+      flag: this.props.route.params.flag,
+      // flag: 'O',
       lokasi: this.state.location.detail
     }
 
-    // alert(JSON.stringify(payload))
+    console.log('presensi payload', payload)
 
     let submit = await API.postDev('add/kehadiran', true, payload)
+    console.log('presensi resp', submit)
     if (!submit.success) {
-      // alert(JSON.stringify(submit))
-      return simpleToast(submit.failureMessage)
+      return this.setState({
+        registerStatus: submit.success,
+        registerStatusMsg: submit.failureMessage
+      })
     }
-
-    // console.log(flagPresensi)
-    // this.setState({ registerStatus: false, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
-    simpleToast('Wajah anda valid')
+    this.beep.play()
+    this.setState({
+      registerStatus: true,
+      registerStatusMsg: 'Presensi Berhasil'
+    })
+    // simpleToast('Wajah anda valid')
     this.props.setLastPresensi(payload)
+    await this.sleep(2000)
     this.props.navigation.pop()
 
 
     // alert(JSON.stringify(payload))
+  }
+
+  sleep = (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 
   presentToast = (message) => {
@@ -388,6 +407,11 @@ export class HomeFacePresensiCamera extends Component {
 
   render() {
     // const headerHeight = useHeaderHeight()
+    // alert(this.props.route.params.flag)
+    const xLeft = w(6)
+    const xRight = w(94)
+    const yTop = ((h(100) - w(90)) / 2)
+    const yBottom = yTop + w(90)
     return (
       <React.Fragment>
         {this.state.mode == 'previewnn' && this._renderImagePreview()}
@@ -406,9 +430,25 @@ export class HomeFacePresensiCamera extends Component {
               buttonPositive: 'Grant',
               buttonNegative: 'Deny'
             }}
-            onFacesDetected={(face) => {
+            onFacesDetected={(ml) => {
+              const face = ml.faces[0]
               // console.log('face', face.faces[0])
-              if (!this.state.alertLocation && this.state.mode == 'waiting' && face.faces[0].rollAngle < 3 && face.faces[0].rollAngle > -3 && face.faces[0].rightEyeOpenProbability > 0.8 && face.faces[0].leftEyeOpenProbability > 0.8 && face.faces[0].yawAngle < 3 && face.faces[0].yawAngle > -3) {
+              if (
+                !this.state.alertLocation &&
+                this.state.mode == 'waiting' &&
+                face.rollAngle < 10 &&
+                face.rollAngle > -10 &&
+                face.rightEyeOpenProbability > 0.5 &&
+                face.leftEyeOpenProbability > 0.5 &&
+                face.yawAngle < 10 &&
+                face.yawAngle > -10 &&
+
+                face.bounds.origin.x > xLeft &&
+                face.bounds.origin.x + face.bounds.size.width < xRight &&
+                face.bounds.origin.y > yTop &&
+                face.bounds.origin.y + face.bounds.size.height < yBottom
+              ) {
+                // return this.beep.play()
                 this.setState({ mode: 'preview', status: 'Analyze your face' }, () => {
                   this.takePicture()
                 })
@@ -417,6 +457,18 @@ export class HomeFacePresensiCamera extends Component {
             faceDetectionClassifications={RNCamera.Constants.FaceDetection.Classifications.all}
             faceDetectionMode={RNCamera.Constants.FaceDetection.Mode.fast}
           >
+            {/* <View
+              style={{ position: 'absolute', width: 1, height: w(90), backgroundColor: 'red', left: xLeft, top: yTop }}
+            />
+            <View
+              style={{ position: 'absolute', width: 1, height: w(90), backgroundColor: 'red', left: xRight, top: yTop }}
+            />
+            <View
+              style={{ position: 'absolute', width: w(90), height: 1, backgroundColor: 'red', left: xLeft, top: yTop }}
+            />
+            <View
+              style={{ position: 'absolute', width: w(90), height: 1, backgroundColor: 'red', left: xLeft, top: yBottom }}
+            /> */}
 
 
             <ImageBackground

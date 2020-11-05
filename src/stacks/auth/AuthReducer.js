@@ -41,6 +41,7 @@ const AuthReducer = (state = intitialState, action) => {
       return {
         ...state,
         profile: {
+          ...state.profile,
           ...action.profile
         }
       }
@@ -53,7 +54,10 @@ const AuthReducer = (state = intitialState, action) => {
     case 'SET_COMPANY':
       return {
         ...state,
-        company: action.company
+        company: {
+          ...state.company,
+          ...action.company,
+        }
       }
     default:
       return state

@@ -1,6 +1,6 @@
 import { Card, Col, Row, CardItem, Body, Thumbnail, Left, Right } from 'native-base'
 import React, { Component } from 'react'
-import { Text, View, StyleSheet, StatusBar, RefreshControl } from 'react-native'
+import { Text, View, StyleSheet, StatusBar, RefreshControl, ImageBackground } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
 import { responsiveHeight as h, responsiveFontSize as fs, responsiveScreenWidth as w } from 'react-native-responsive-dimensions'
 import { API } from '../../../utils/Api'
@@ -109,9 +109,33 @@ class HomePresensiHistory extends Component {
   componentWillUnmount() {
     this.isFocus()
   }
+
+  _renderTest() {
+    return (
+      <ImageBackground
+        style={{
+          width: w(100),
+          height: h(100)
+        }}
+        source={{ uri: 'http://api-presensi.pttas.xyz/api/file/wajah/W-5MBb4PYGEzOHyOTJglU4iykU7MmKIpiUtJWsc3oDxB3vzrH3oF15Ojvh9T-PVghnKo686HQiCfZ9_cTHP96FA4HikBlzo2XTLeTwfcE55T7p8zkKqInoZRtB8.' }}
+      />
+    )
+  }
+
   render() {
+    let sourceAvatar = null
+    if (this.props.auth.profile.foto_profil) {
+      sourceAvatar = {
+        uri: `${ASSETS_URL}/users/foto_profil/${this.props.auth.profile.foto_profil}`
+      }
+    }
+
+    else {
+      sourceAvatar = require('../../../../assets/images/default-user.png')
+    }
     return (
       <View style={styles.container}>
+        {/* {this._renderTest()} */}
         <View
           style={{
             padding: fs(1.2),
@@ -121,10 +145,11 @@ class HomePresensiHistory extends Component {
           <Card>
             <CardItem>
               <Left>
-                <Thumbnail source={{ uri: `${ASSETS_URL}/users/foto_profil/${this.props.auth.profile.foto_profil}` }} />
+                <Thumbnail
+                  source={sourceAvatar} />
                 <Body>
                   <Text style={{ fontWeight: 'bold' }}>{this.props.auth.profile.nama}</Text>
-                  <Text>{this.props.auth.company.name}</Text>
+                  <Text>{this.props.auth.company.nama}</Text>
                 </Body>
               </Left>
             </CardItem>

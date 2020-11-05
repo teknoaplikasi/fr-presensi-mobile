@@ -15,8 +15,8 @@ const qrIcon = require('../../assets/images/qr-icon.png')
 const logoutIcon = require('../../assets/images/logout-icon.png')
 
 const Tab = createBottomTabNavigator()
-const mode = Appearance.getColorScheme()
-const scheme = Theme[mode]
+// const mode = Appearance.getColorScheme()
+const scheme = Theme['light']
 
 
 function MyTabBar({ state, descriptors, navigation, auth, presentLogoutAlert, presensi }) {
@@ -84,14 +84,31 @@ function MyTabBar({ state, descriptors, navigation, auth, presentLogoutAlert, pr
         if (label == 'TouchableTab') {
 
           let isPresensiIn = false
-          if (!presensi.last_presensi.tanggal)
+          const lastPresensi = presensi.last_presensi
+          console.log('last presensi', lastPresensi)
+          const dateNow = moment().format('YYYY-MM-DD')
+          if (!lastPresensi || !lastPresensi.tanggal) {
             isPresensiIn = true
-          if (presensi.last_presensi.tanggal && presensi.last_presensi.tanggal == moment().format('YYYY-MM-DD') && presensi.last_presensi.flag == 'O')
+          }
+
+          else if (lastPresensi.tanggal == dateNow && lastPresensi.flag == 'I') {
+            console.log('masuk')
+            isPresensiIn = false
+          }
+
+          else if (lastPresensi.tanggal == dateNow && lastPresensi.flag == 'O') {
             isPresensiIn = true
-          // if (presensi.last_presensi.tanggal && presensi.last_presensi.tanggal == moment().format('YYYY-MM-DD') && presensi.last_presensi.flag == 'I')
-          //   isPresensiIn = false
-          // if (presensi.last_presensi.tanggal && presensi.last_presensi.tanggal != moment().format('YYYY-MM-DD'))
-          //   isPresensiIn = true
+          }
+
+          else if (lastPresensi.tanggal != dateNow) {
+            isPresensiIn = true
+          }
+
+          else {
+            isPresensiIn = false
+          }
+
+          console.log('ispresensi in', isPresensiIn)
           return (
             <TouchableOpacity
               style={{
@@ -106,8 +123,9 @@ function MyTabBar({ state, descriptors, navigation, auth, presentLogoutAlert, pr
               }}
               onPress={async () => {
                 if (isPresensiIn) {
-                  // console.log('nav', navigation)
-                  navigation.navigate('HomeFacePresensiCamera')
+                  navigation.navigate('HomeFacePresensiCamera', {
+                    flag: isPresensiIn ? 'I' : 'O'
+                  })
                 }
 
                 else {

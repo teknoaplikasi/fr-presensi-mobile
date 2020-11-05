@@ -4,7 +4,7 @@ import { AZURE_BASE_URL, AZURE_KEY } from '../../config'
 
 export const AzureFaceAPI = {
   async verify(faceId1, faceId2) {
-    var data = { "faceId1": faceId1, "faceId2": faceId2 }
+    var data = { faceId1: faceId1, faceId2: faceId2 }
 
     var config = {
       method: 'post',

@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { Text, View, StyleSheet, Button, ImageBackground, ToastAndroid, StatusBar, ActivityIndicator, Image } from 'react-native'
+import { Text, View, StyleSheet, ImageBackground, ToastAndroid, StatusBar, ActivityIndicator, Image, Linking } from 'react-native'
 import { RNCamera } from 'react-native-camera'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 
@@ -9,9 +9,10 @@ import Icon from 'react-native-vector-icons/FontAwesome5'
 import { useHeaderHeight } from '@react-navigation/stack'
 import { AzureFaceAPI } from '../../../utils/Azure'
 import { AZURE_BASE_URL, AZURE_KEY } from '../../../../config'
-import RNFS from 'react-native-fs'
 import Chip from '../../../components/Chip'
 import { connect } from 'react-redux'
+import { Button } from 'native-base'
+import { simpleToast } from '../../../utils/DisplayHelper'
 
 export class RegisterFaceCamera extends Component {
   constructor() {
@@ -48,11 +49,12 @@ export class RegisterFaceCamera extends Component {
 
   componentWillUnmount() {
     // this.camera
+    this.isFocus()
   }
 
   takePicture = async () => {
     if (this.camera) {
-      const options = { quality: 1, base64: false }
+      const options = { quality: 0.5, base64: false }
       const data = await this.camera.takePictureAsync(options)
       this.setState({ image: data }, () => {
         this.registerImage()
@@ -63,28 +65,35 @@ export class RegisterFaceCamera extends Component {
 
   registerImage = async () => {
     let upload = await AzureFaceAPI.detect(this.state.image.uri)
-
+    // console.log(JSON.stringify(upload))
     if (!upload.success)
       return this.presentToast(upload.error.error_message)
 
     if (upload.result.length == 0)
       return this.presentToast('Tidak ada wajah terdeteksi')
 
-    console.log(upload.result)
     const faceId = upload.result[0].faceId
-    let register = await API.get('register-face', false, {
-      faceId: faceId
-    })
-
-
-    this.setState({ registerStatus: register.success })
+    let register = await API.registerFace(this.state.image.uri, this.props.auth.profile.id, faceId)
 
     if (!register.success) {
+
       this.setState({ registerStatus: false, registerStatusMsg: 'Registrasi Wajah Gagal' })
-      this.presentToast('Registrasi Wajah gagal, coba lagi')
+      return simpleToast('Gagal mendaftarkan wajah. Coba beberapa saat lagi')
     }
 
+
+    this.props.editProfile({
+      face_registered: 'Y',
+      face_status: 'W'
+    })
     await this.props.setFaceId(faceId)
+
+    this.setState({
+      registerStatus: true,
+      registerStatusMsg: 'Registrasi Wajah Berhasil'
+    })
+
+    this.props.navigation.pop()
 
 
   }
@@ -94,6 +103,64 @@ export class RegisterFaceCamera extends Component {
       message,
       ToastAndroid.SHORT,
       ToastAndroid.BOTTOM
+    )
+  }
+
+  _renderNotAuthorizedView = () => {
+    return (
+      <View
+        style={{
+          width: w(100),
+          height: h(100),
+          backgroundColor: 'white',
+          justifyContent: 'center'
+        }}
+      >
+        <Image
+          source={require('../../../../assets/images/no-permission.png')}
+          style={{
+            alignSelf: 'center'
+          }}
+        />
+
+        <Text style={{ fontWeight: 'bold', alignSelf: 'center', fontSize: fs(2.5), marginVertical: fs(3) }}>Akses Kamera Ditolak</Text>
+        <Text style={{ alignSelf: 'center', textAlign: 'center', width: w(70) }}>Aplikasi presensi need akses kamera pada device anda. Buka setting dan izinkan permission camera</Text>
+
+        <Button
+          primary
+          rounded
+          full
+          style={{
+            alignSelf: 'center',
+            marginHorizontal: fs(1),
+            marginVertical: fs(2),
+            maxWidth: w(70),
+            borderRadius: fs(3)
+          }}
+          onPress={() => {
+            Linking.openSettings()
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>BUKA PENGATURAN APLIKASI</Text>
+        </Button>
+        {/* <Button
+          light
+          rounded
+          style={{
+            alignSelf: 'center',
+            marginHorizontal: fs(1),
+            paddingHorizontal: fs(5),
+            maxWidth: w(70),
+            borderRadius: fs(3)
+          }}
+          onPress={() => {
+            this.forceUpdate()
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>REFRESH</Text>
+        </Button> */}
+      </View>
+
     )
   }
 
@@ -153,7 +220,11 @@ export class RegisterFaceCamera extends Component {
   }
 
   render() {
-    // const headerHeight = useHeaderHeight()
+
+    const xLeft = w(6) + fs(2)
+    const xRight = w(94) - fs(4)
+    const yTop = ((h(100) - w(90)) / 2) + fs(5)
+    const yBottom = yTop + w(90) - fs(5)
     return (
       <React.Fragment>
         {this.state.mode == 'previewnn' && this._renderImagePreview()}
@@ -164,16 +235,33 @@ export class RegisterFaceCamera extends Component {
             }}
             type={RNCamera.Constants.Type.front}
             style={styles.cameraView}
-            androidCameraPermissionOptions={{
-              title: 'Permission to use Camera',
-              message: 'App name need your permission to use camera',
-              buttonPositive: 'Grant',
-              buttonNegative: 'Deny'
-            }}
-            onFacesDetected={(face) => {
+            // androidCameraPermissionOptions={{
+            //   title: 'Permission to use Camera',
+            //   message: 'App name need your permission to use camera',
+            //   buttonPositive: 'Grant',
+            //   buttonNegative: 'Deny'
+            // }}
+            notAuthorizedView={this._renderNotAuthorizedView()}
+            onFacesDetected={(ml) => {
               // console.log('face', face.faces[0])
+              const face = ml.faces[0]
 
-              if (this.state.mode == 'waiting' && face.faces[0].rollAngle < 3 && face.faces[0].rollAngle > -3 && face.faces[0].rightEyeOpenProbability > 0.8 && face.faces[0].leftEyeOpenProbability > 0.8 && face.faces[0].yawAngle < 3 && face.faces[0].yawAngle > -3) {
+              if (
+
+                !this.state.alertLocation &&
+                this.state.mode == 'waiting' &&
+                face.rollAngle < 7 &&
+                face.rollAngle > -7 &&
+                face.rightEyeOpenProbability > 0.8 &&
+                face.leftEyeOpenProbability > 0.8 &&
+                face.yawAngle < 7 &&
+                face.yawAngle > -7 &&
+
+                face.bounds.origin.x > xLeft &&
+                face.bounds.origin.x + face.bounds.size.width < xRight &&
+                face.bounds.origin.y > yTop &&
+                face.bounds.origin.y + face.bounds.size.height < yBottom
+              ) {
                 // this.presentToast('Masuk')
                 this.setState({ mode: 'preview', status: 'Analyze your face' }, () => {
                   this.takePicture()
@@ -181,7 +269,7 @@ export class RegisterFaceCamera extends Component {
               }
             }}
             faceDetectionClassifications={RNCamera.Constants.FaceDetection.Classifications.all}
-            faceDetectionMode={RNCamera.Constants.FaceDetection.Mode.accurate}
+            faceDetectionMode={RNCamera.Constants.FaceDetection.Mode.fast}
           >
 
             <ImageBackground
@@ -331,12 +419,14 @@ const styles = StyleSheet.create({
 })
 
 const mapStateToProps = (state) => ({
-  ...state
+  ...state,
+  auth: state.auth
 })
 
 const mapDispatchToProps = dispatch => {
   return {
-    setFaceId: (payload) => dispatch({ type: 'SET_FACE_ID', faceId: payload })
+    setFaceId: (payload) => dispatch({ type: 'SET_FACE_ID', faceId: payload }),
+    editProfile: (payload) => dispatch({ type: 'EDIT_PROFILE', profile: payload })
   }
 }
 

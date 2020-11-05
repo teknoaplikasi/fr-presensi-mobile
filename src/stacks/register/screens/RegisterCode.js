@@ -9,6 +9,7 @@ import { connect } from 'react-redux'
 import { TextInput, TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler'
 import { simpleToast } from '../../../utils/DisplayHelper'
 import { API } from '../../../utils/Api'
+import Icon from 'react-native-vector-icons/FontAwesome5'
 
 export class RegisterCode extends Component {
 
@@ -17,7 +18,7 @@ export class RegisterCode extends Component {
 
     this.state = {
       active: false,
-      value: 'ea369880-cd50-49e7-9b14-dccfdef353ac',
+      value: '',
       scheme: {},
       buttonLoading: false
     }
@@ -30,6 +31,15 @@ export class RegisterCode extends Component {
 
 
   componentDidMount = async () => {
+
+    await this.initValue()
+    this.keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', async () => {
+      this.keyboardWillHide()
+    })
+    this.keyboardWillShowSub = Keyboard.addListener('keyboardWillShow', this.keyboardWillShow)
+
+    this.keyboardWillHideSub = Keyboard.addListener('keyboardWillHide', this.keyboardWillHide);
+
     this.isFocus = this.props.navigation.addListener('focus', async () => {
       await this.initValue()
       this.keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', async () => {
@@ -44,7 +54,7 @@ export class RegisterCode extends Component {
   }
 
   componentWillUnmount() {
-
+    this.isFocus()
     this.keyboardWillShowSub.remove();
     this.keyboardWillHideSub.remove();
     this.keyboardDidHideListener.remove()
@@ -102,7 +112,7 @@ export class RegisterCode extends Component {
       return simpleToast('Perusahaan tidak ditemukan')
     }
 
-    // console.log(JSON.stringify(check))
+    console.log(JSON.stringify(check))
 
 
     this.props.navigation.navigate('RegisterFace', {
@@ -114,7 +124,7 @@ export class RegisterCode extends Component {
   render() {
     const { active, scheme } = this.state
     return (
-      <Animated.View style={[{ bottom: this.avoidingView }, styles.container]}>
+      <Animated.View style={[{ bottom: this.avoidingView, backgroundColor: 'white' }, styles.container]}>
         <TouchableWithoutFeedback
           onPress={() => {
             this.keyboardWillHide()
@@ -142,7 +152,9 @@ export class RegisterCode extends Component {
             <Form style={styles.form}>
               <View style={[
                 {
-                  borderColor: active ? '#6200ee' : 'rgba(178,178,178,.5)'
+                  borderColor: active ? '#6200ee' : 'rgba(178,178,178,.5)',
+                  justifyContent: 'space-between',
+                  flexDirection: 'row'
                 },
                 styles.inputLabel
               ]}>
@@ -155,8 +167,13 @@ export class RegisterCode extends Component {
                     this.keyboardWillHide()
                   }}
                   value={this.state.value}
+                  style={{
+                    alignSelf: 'flex-start',
+                    width: '100%'
+                  }}
                 />
-                {/* </Item> */}
+
+
               </View>
 
 

@@ -20,9 +20,9 @@ export class RegisterFace extends Component {
       schema: {},
       cityList: [],
       value: {
-        nama: 'Edo',
-        email: 'edo@gmail.com',
-        password: 'password',
+        nama: '',
+        email: '',
+        password: '',
         perusahaan_id: '',
         kota_id: null
       },
@@ -171,6 +171,8 @@ export class RegisterFace extends Component {
     //   email: this.state.value.email
     // })
 
+    console.log('resgister', JSON.stringify(submit))
+
     this.props.navigation.dispatch(
       CommonActions.reset({
         routes: [
@@ -315,13 +317,16 @@ const styles = StyleSheet.create({
 
   blockAWrapper: {
     width: w(100),
-    height: h(65),
+    // height: h(65),
     backgroundColor: 'white'
   },
 
   form: {
     // backgroundColor: 'grey',
-    paddingHorizontal: fs(5)
+    paddingHorizontal: fs(5),
+    height: h(100),
+    // position: 'relative'
+    // flex: 1,
   },
 
   formInput: {
@@ -332,10 +337,11 @@ const styles = StyleSheet.create({
   },
 
   formButton: {
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    // display: 'flex',
+    // flexDirection: 'row',
+    // justifyContent: 'space-between',
     marginTop: fs(3)
+    // paddingTop: fs(5)
   }
 })
 

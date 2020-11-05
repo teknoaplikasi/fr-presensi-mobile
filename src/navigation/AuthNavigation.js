@@ -3,6 +3,7 @@ import { View, Text } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { responsiveFontSize as fs } from 'react-native-responsive-dimensions'
 import { NavigationContainer } from '@react-navigation/native'
+import Theme from '../utils/Theme'
 import HomeRouter from '../stacks/home/HomeRouter'
 import RegisterRouter from '../stacks/register/RegisterRouter'
 import Icon from 'react-native-vector-icons/FontAwesome5'
@@ -13,6 +14,7 @@ import RegisterSuccess from '../stacks/register/screens/RegisterSuccess'
 import RegisterIndex from '../stacks/register/screens/RegisterIndex'
 import RegisterFace from '../stacks/register/screens/RegisterFace'
 import SearchKota from '../stacks/auth/screens/SearchKota'
+import ForgotPassword from '../stacks/register/screens/ForgotPassword'
 
 const Stack = createStackNavigator()
 
@@ -53,6 +55,20 @@ function AuthNavigation() {
           component={RegisterSuccess}
           options={{
             headerShown: false
+          }}
+        />
+
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPassword}
+          options={{
+            headerShown: true,
+            title: 'Lupa Password',
+            headerStyle: {
+              backgroundColor: Theme.default.primaryColor
+            },
+            headerTintColor: 'white',
+            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
           }}
         />
 

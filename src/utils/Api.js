@@ -1,14 +1,14 @@
 
 import axios from 'axios'
 import { Store } from '../../Store'
-import { BASE_URL } from '../../config'
+import { BASE_URL, API_URL } from '../../config'
 import { useDispatch } from 'react-redux'
 
 
 export const API = {
   async getDev(path = '', auth = false, params = {}) {
-    path = `http://192.168.0.181/presensi21/api/${path}`
-    console.log(params)
+    path = `${API_URL}${path}`
+    // console.log(params)
     let headers = {}
     headers['Content-Type'] = 'application/json'
     if (auth) {
@@ -47,7 +47,7 @@ export const API = {
 
       })
       .catch(err => {
-        // console.log('errr', JSON.stringify(err))
+        console.log('error get', JSON.stringify(err))
         return {
           success: false,
           error: err.response.data,
@@ -56,7 +56,7 @@ export const API = {
       })
   },
   async postDev(path = '', auth = false, body = {}) {
-    path = `http://192.168.0.181/presensi21/api/${path}`
+    path = `${API_URL}${path}`
     let headers = {}
     headers['Content-Type'] = 'application/json'
     if (auth) {
@@ -65,11 +65,6 @@ export const API = {
       headers['X-Authorization'] = auth
     }
 
-    // console.log('called')
-    // return axios.post(path, {
-    //   headers: headers,
-    //   data: JSON.stringify(body)
-    // })
     return axios({
       method: 'POST',
       url: path,
@@ -90,10 +85,10 @@ export const API = {
 
       })
       .catch(err => {
-        // console.log('errr', JSON.stringify(err))
+        console.log('err post', JSON.stringify(err))
         return {
           success: false,
-          error: err.response.data,
+          // error: err.response.data,
           response: err.response
         }
       })
@@ -240,6 +235,44 @@ export const API = {
         return { success: false, error: error.response.data }
 
       });
+  },
+
+  registerFace(imageFile, userId, faceId) {
+    let data = new FormData()
+    let imgPayload = {
+      uri: imageFile,
+      type: 'image/jpeg',
+      name: '1.jpg'
+    }
+
+    data.append('foto_wajah', imgPayload)
+    data.append('users_id', userId)
+    data.append('face_id', faceId)
+
+    const state = Store.getState()
+    // alert(state.auth.token)
+    return axios({
+      method: 'POST',
+      url: `${API_URL}add/wajah`,
+      // url: 'http://192.168.0.184/presensi21/api/add/wajah',
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'X-Authorization': state.auth.token
+      },
+      data: data
+    })
+      .then(response => {
+        return {
+          success: true,
+          result: response.data
+        }
+      })
+      .catch(err => {
+        return {
+          success: false,
+          err: err.response.data ? err.response.data : 'Network Error'
+        }
+      })
   },
 
   test(imageFile) {

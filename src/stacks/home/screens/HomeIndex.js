@@ -1,23 +1,21 @@
 import React, { Component } from 'react'
 
-import { StyleSheet, Image, View, StatusBar, ImageBackground, Animated, Easing, Appearance } from 'react-native'
+import { StyleSheet, Image, View, StatusBar, ImageBackground, Animated, Easing, Appearance, ActivityIndicator, RefreshControl } from 'react-native'
 import { responsiveWidth as w, responsiveHeight as h, responsiveFontSize as fs } from 'react-native-responsive-dimensions'
 import { API } from '../../../utils/Api'
 import { Container, Header, Content, Form, Item, Input, Label, Row, Col, Text, Button, Card, CardItem, Body, Badge } from 'native-base';
-import {
-  LineChart,
-  BarChart,
-  PieChart,
-  ProgressChart,
-  ContributionGraph,
-  StackedBarChart
-} from "react-native-chart-kit"; import { f } from '../../../utils/StyleHelper';
+import { PieChart } from "react-native-chart-kit";
 import { PanGestureHandler, ScrollView, TouchableHighlight, TouchableOpacity } from 'react-native-gesture-handler';
 import Theme from '../../../utils/Theme'
 import Modal from 'react-native-modal'
 import Icon from 'react-native-vector-icons/FontAwesome5'
 import { connect } from 'react-redux';
 import moment from 'moment'
+import BadgePresensi from '../components/BadgePresensi'
+
+import Geolocation from '@react-native-community/geolocation'
+import { geocodeLatLong, geofenceRadius } from '../../../utils/GeolocationHelper'
+import { simpleToast } from '../../../utils/DisplayHelper';
 
 
 export class HomeIndex extends Component {
@@ -26,11 +24,18 @@ export class HomeIndex extends Component {
     super()
     this.state = {
       //move theme later
+      location: null,
+      refreshing: true,
+      isPresensiIn: null,
       scheme: {},
+      currentTime: moment().format('HH:mm:ss'),
       mode: null,
       primary: '#ffac1f',
       secondary: '#8335f4',
-      chart: [],
+      chart: {
+        attendance: [],
+        presensi: []
+      },
       logoutModalVisible: false,
 
       blockBHeight: {
@@ -59,38 +64,107 @@ export class HomeIndex extends Component {
   }
 
   componentDidMount = async () => {
+    this.getData()
     this.initValue()
-
     this.isFocus = this.props.navigation.addListener('focus', () => {
+      this.getData()
       this.initValue()
+      this.intervalCurrentTime = setInterval(() => {
+        this.setState({
+          currentTime: moment().format('HH:mm:ss')
+        })
+      }, 1000)
+    })
+    this.initChart()
+    this.intervalCurrentTime = setInterval(() => {
+      this.setState({
+        currentTime: moment().format('HH:mm:ss')
+      })
+    }, 1000)
+  }
+
+  getData = async () => {
+    const faceStatus = await API.getDev('ValidateFace', true, {
+      user_id: this.props.auth.profile.id
+    })
+    if (!faceStatus.success) {
+      return simpleToast('Gagal mengambil status wajah')
+    }
+
+    this.props.editProfile({
+      face_status: faceStatus.data.face
     })
 
-    this.initChart()
+    // simpleToast(JSON.stringify(faceStatus.data))
+
+    Geolocation.getCurrentPosition(async ({ coords }) => {
+      // return simpleToast(JSON.stringify(coords))
+      let locationDetail = await geocodeLatLong(coords.latitude, coords.longitude)
+      if (!locationDetail.success) {
+
+        this.setState({ refreshing: false })
+        return simpleToast('Gagal mendapatkan lokasi anda')
+      }
+      // simpleToast(JSON.stringify(locationDetail.result))
+      coords.detail = locationDetail.result
+      this.setState({
+        refreshing: false,
+        location: coords
+      })
+
+    })
+
+
+
+    // return simpleToast('Okay')
   }
 
   componentWillUnmount() {
     this.isFocus()
+    this.intervalCurrentTime
   }
 
   initValue = async () => {
+
+
+    let isPresensiIn = false
+    const lastPresensi = this.props.presensi.last_presensi
+    const dateNow = moment().format('YYYY-MM-DD')
+    if (!lastPresensi || !lastPresensi.tanggal) {
+      isPresensiIn = true
+    }
+
+    else if (lastPresensi.tanggal == dateNow && lastPresensi.flag == 'I') {
+      console.log('masuk')
+      isPresensiIn = false
+    }
+
+    else if (lastPresensi.tanggal == dateNow && lastPresensi.flag == 'O') {
+      isPresensiIn = true
+    }
+
+    else if (lastPresensi.tanggal != dateNow) {
+      isPresensiIn = true
+    }
+
+    else {
+      isPresensiIn = false
+    }
     StatusBar.setBackgroundColor('#ffac1f')
     StatusBar.setBarStyle('light-content')
-    // console.log(moment())
-    const dateNow = moment().format('H')
-    const dateIn = moment(`${this.props.presensi.last_presensi.tanggal} ${this.props.presensi.last_presensi.jam}`).format('H')
-    const mode = Appearance.getColorScheme()
     await this.setState({
-      scheme: Theme[mode],
-      mode: mode
+      scheme: Theme['light'],
+      mode: 'light',
+      isPresensiIn: isPresensiIn
     })
   }
 
   initChart = () => {
-    const data = [
+    const attendance = [
       {
         name: "Terlambat",
         population: 300,
-        color: this.state.scheme.secondaryColor,
+        color: 'orange',
         legendFontColor: "#7F7F7F",
         legendFontSize: 15,
       },
@@ -103,7 +177,30 @@ export class HomeIndex extends Component {
       },
 
     ];
-    this.setState({ chart: data })
+
+    const presensi = [
+      {
+        name: "Presensi",
+        population: 160,
+        color: 'orange',
+        legendFontColor: "#7F7F7F",
+        legendFontSize: 15,
+      },
+      {
+        name: "Abstain",
+        population: 200,
+        color: "#9b5df5",
+        legendFontColor: "#7F7F7F",
+        legendFontSize: 15
+      },
+
+    ];
+    this.setState({
+      chart: {
+        attendance: attendance,
+        presensi: presensi
+      }
+    })
   }
 
   onBlockBPanned = (event) => {
@@ -166,6 +263,11 @@ export class HomeIndex extends Component {
   testAnimate = () => {
     this.props.resetPresensi()
     this.props.logout()
+    // this.blockBTop
+    // Animated.timing(this.blockBTop, {
+    //   duration: 200,
+    //   toValue: h(10)
+    // }).start()
   }
 
   renderModal() {
@@ -233,7 +335,9 @@ export class HomeIndex extends Component {
                 borderRadius: 5
               }}
               onPress={() => {
-                this.props.navigation.navigate('HomeFacePresensiCamera')
+                this.props.navigation.navigate('HomeFacePresensiCamera', {
+                  flag: this.state.isPresensiIn ? 'I' : 'O'
+                })
                 hideLogoutAlert()
 
               }}
@@ -247,320 +351,407 @@ export class HomeIndex extends Component {
   }
 
   renderRegisterLink() {
-    return (
-      // <View><Text>Here</Text></View>
-      <Row style={{ height: 'auto' }}>
-        <Button rounded onPress={() => {
-          this.props.navigation.navigate('HomeRegisterFaceCamera')
-        }}>
-          <Text>Register Face</Text>
-        </Button>
-      </Row>
-    )
+    return null
   }
 
 
 
   render() {
-    // console.log('home index props', this.props)
-    const { home, hideLogoutAlert } = this.props
-    const { blockBHeight, blockA, mode, scheme, logoutModalVisible } = this.state
-    const primaryText = '#705499'
-    const buttonColor = '#6200ee'
-    // const imageBackground = mode == 'light' ? require('../../../../assets/images/home-bg-light.png') : require('../../../../assets/images/home-bg-dark.png')
-    //interpolate
-    // const blockAOpacity = {
-    //   opacity: blockA.opacity.interpolate({
-    //     inputRange: [0, 1],
-    //     outputRange: [0, 1],
-    //   })
-    // }
-
-
-    const blockBTopStyle = {
-      top: this.blockBTop
-    }
-    const blockAOpacity = {
-      opacity: this.blockAOpacity
-    }
-
-    const blockATransform = {
-      transform: [
-        { translateY: this.blockATransform }
-      ]
-    }
-
-
+    const { mode, scheme, blockA } = this.state
+    const { auth, presensi } = this.props
+    const hasPresensi = this.props.presensi.last_presensi.tanggal && this.props.presensi.last_presensi.tanggal == moment().format('YYYY-MM-DD')
     return (
       <Container>
+        <Animated.ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={this.state.refreshing}
+              onRefresh={() => {
+                this.setState({ refreshing: true })
+                this.getData()
+              }}
+            />
+          }
+        >
+          {this.renderModal()}
+          <View>
 
-        {this.renderModal()}
-        {/* SUMMARY */}
-        {/* <Content> */}
-        <View>
-          <ImageBackground
-            style={{
-              position: 'relative',
-              height: h(50),
-              width: w(100),
-              justifyContent: 'center'
-            }}
-            source={mode == 'light' ? require('../../../../assets/images/home-bg-light.png') : require('../../../../assets/images/home-bg-dark.png')}
-          >
-            <Animated.View
-              style={[
-                // blockATransform,
-                {
-                  paddingHorizontal: fs(3),
-                  paddingVertical: fs(5),
-                  justifyContent: 'space-between',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  // backgroundColor: 'blue',
-                  // height: '100%',
-
-                  alignSelf: 'center',
-                  alignContent: 'center',
-                  transform: [
-                    { translateY: blockA.transitionY }
-                    // { translateY: h(-10) }
-                  ]
-                }]}
+            <ImageBackground
+              style={{
+                position: 'relative',
+                height: h(50),
+                width: w(100),
+                justifyContent: 'center'
+              }}
+              source={mode == 'light' ? require('../../../../assets/images/home-bg-light.png') : require('../../../../assets/images/home-bg-dark.png')}
             >
-              {/* <Row> */}
-              {/* <Col size={7}> */}
+
               <View
                 style={{
-                  alignSelf: 'flex-start',
-                  width: '65%'
+                  position: 'absolute',
+                  // zIndex: 999,
+                  width: 40,
+                  top: 0,
+                  right: 0,
+                  height: 50,
+                  justifyContent: 'center',
+
                 }}
               >
-                <Animated.Text
-                  style={[
-                    // blockAOpacity,
-                    {
-                      fontWeight: 'bold',
-                      fontSize: fs(5),
-                      color: scheme.primaryText,
-                      opacity: blockA.opacity
-                    }
-                  ]}
-                >{moment(`${this.props.presensi.last_presensi.tanggal} ${this.props.presensi.last_presensi.jam}`).format('HH:mm')}</Animated.Text>
+                <TouchableOpacity>
+                  <Icon name="bars" color="white" size={fs(3)} style={{ alignSelf: 'center', height: '100%', paddingTop: fs(1.2) }} />
+                </TouchableOpacity>
 
-                <Card style={{
-                  overflow: 'hidden',
-                  borderRadius: fs(2),
-                  width: '90%',
-                }}>
-                  <CardItem style={{
-                    backgroundColor: scheme.thirdBg
+              </View>
+              {/* <View
+                  style={{
+                    width: w(40),
+                    height: h(20),
+                    position: 'absolute',
+                    backgroundColor: 'yellow'
+                  }}
+                >
+
+                </View> */}
+              <Animated.View
+                style={[
+                  {
+                    paddingHorizontal: fs(3),
+                    paddingVertical: fs(5),
+                    justifyContent: 'space-between',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    alignSelf: 'center',
+                    alignContent: 'center',
+                    transform: [
+                      { translateY: this.state.blockA.transitionY }
+                    ]
+                  }]}
+              >
+                <View
+                  style={{
+                    alignSelf: 'flex-start',
+                    width: '65%'
+                  }}
+                >
+                  <Animated.Text
+                    style={[
+                      {
+                        fontWeight: 'bold',
+                        fontSize: fs(5),
+                        color: scheme.primaryText,
+                        opacity: blockA.opacity
+                      }
+                    ]}
+                  >{this.state.currentTime}</Animated.Text>
+
+                  <Card style={{
+                    overflow: 'hidden',
+                    borderRadius: fs(2),
+                    width: '90%',
                   }}>
-                    <Body>
-                      <Animated.Text
-                        style={[{ fontSize: fs(1.5), color: scheme.primaryText, opacity: blockA.opacity }]}
-                      >{this.props.presensi.last_presensi.lokasi}</Animated.Text>
+                    <CardItem style={{
+                      backgroundColor: scheme.thirdBg
+                    }}>
+                      <Body>
+                        <Animated.Text
+                          style={[{ fontSize: fs(1.5), color: scheme.primaryText, opacity: blockA.opacity }]}
+                          numberOfLines={2}
+                        >
+                          {this.state.location && this.state.location.detail ? this.state.location.detail : 'Mengambil detail lokasi . . .'}
+                        </Animated.Text>
+                      </Body>
+                    </CardItem>
+                  </Card>
+
+                </View>
+
+
+                <View
+                  style={{
+                    alignSelf: 'flex-end',
+                    width: '35%',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    // flexDirection: 'row'
+                  }}
+                >
+                  <Animated.Image
+                    source={require('../../../../assets/images/presensi.png')}
+                    style={[{
+                      width: '100%',
+                      alignSelf: 'center',
+                      opacity: blockA.opacity
+                    }]}
+                  />
+                </View>
+              </Animated.View>
+
+
+            </ImageBackground>
+          </View>
+          {/* <PanGestureHandler
+          onGestureEvent={this.onBlockBPanned}
+          onHandlerStateChange={this.onChangeStateBlockB}
+        > */}
+          {/* <Animated.ScrollView
+          style={[
+            // blockBTopStyle,
+            {
+              position: 'absolute',
+              width: w(100),
+              backgroundColor: scheme.primaryBg,
+              top: h(40),
+              // top: blockBHeight.value,
+              // top: h(40),
+
+              borderTopRightRadius: 30,
+              borderTopLeftRadius: 30,
+              paddingHorizontal: fs(2.5),
+              paddingVertical: fs(5),
+              zIndex: 99999,
+              // backgroundColor: 'blue',
+              // transform: [
+              //   { translateY: 100 }
+              // ]
+            }]}
+          contentContainerStyle={{
+            // flexGrow: 1,
+            height: h(200),
+            // flex: 1
+          }}
+
+          scrollEventThrottle={1}
+          stickyHeaderIndices={[1]}
+        > */}
+          <View
+            style={{
+              top: fs(-10),
+              backgroundColor: 'white',
+              paddingTop: fs(2),
+              paddingHorizontal: fs(2),
+              borderTopRightRadius: fs(2),
+              borderTopLeftRadius: fs(2)
+            }}
+          >
+
+            <BadgePresensi
+              bgColor={this.state.secondary}
+              textColor="white"
+              button="PRESENSI"
+              onPress={() => {
+                this.props.navigation.navigate('HomeFacePresensiCamera')
+              }}
+              text="Anda belum melakukan presensi hari ini"
+              rIf={auth.profile.face_status == 'Y' && !hasPresensi}
+            />
+
+
+            <BadgePresensi
+              bgColor="white"
+              bordered
+              textColor={this.state.secondary}
+              text={presensi.last_presensi.lokasi}
+              title={`${presensi.last_presensi.flag == 'I' ? 'Masuk' : 'Keluar'}, ${moment(presensi.last_presensi.tanggal).format('DD MMMM YYYY')}`}
+              subtitle={`${presensi.last_presensi.jam} WIB`}
+              rIf={auth.profile.face_status == 'Y' && hasPresensi}
+            />
+
+            <BadgePresensi
+              bgColor={this.state.secondary}
+              text="Anda belum melakukan registrasi wajah"
+              textColor="white"
+              button="REGISTER"
+              onPress={() => {
+                this.props.navigation.navigate('HomeRegisterFaceCamera')
+              }}
+              rIf={auth.profile.face_registered == "N" && auth.profile.face_status == 'N'}
+            />
+
+
+
+            <BadgePresensi
+              bgColor={this.state.primary}
+              text="Registrasi wajah anda sedang dalam proses verifikasi"
+              title="Menunggu Verifikasi"
+              textColor="white"
+              button="Refresh Status Verifikasi"
+              onPress={() => {
+                this.setState({
+                  refreshing: true
+                })
+                this.getData()
+              }}
+              rIf={auth.profile.face_status == 'W'}
+            />
+            {this.renderRegisterLink()}
+            <Row style={{ backgroundColor: scheme.primaryBg, marginVertical: fs(2), height: 'auto' }}>
+              <Col size={6}>
+                <Card style={{ borderRadius: fs(1), overflow: 'hidden', }}>
+                  <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
+                    <Body style={{ display: 'flex', justifyContent: 'center' }}>
+                      <PieChart
+                        data={this.state.chart.attendance}
+                        width={100}
+                        height={100}
+                        hasLegend={false}
+                        // width={screenWidth}
+                        // height={220}
+
+                        chartConfig={{
+                          backgroundGradientFrom: "#1E2923",
+                          backgroundGradientFromOpacity: 0,
+                          backgroundGradientTo: "#08130D",
+                          backgroundGradientToOpacity: 0.5,
+                          color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
+                          strokeWidth: 2, // optional, default 3
+                          barPercentage: 0.5,
+                          useShadowColorFromDataset: false // optional
+                        }}
+                        accessor="population"
+                        backgroundColor="transparent"
+                        paddingLeft="30"
+                        absolute
+                        style={{
+                          alignSelf: 'center'
+                        }}
+                      />
+
+                      <Text style={{
+                        alignSelf: 'center',
+                        color: '#493a76',
+                        fontWeight: 'bold',
+                        fontSize: fs(1.8)
+                      }}>ATTENDANCE</Text>
+
+                      {/* LEGEND */}
+                      <Row style={{ marginVertical: fs(1) }}>
+                        {
+                          this.state.chart.attendance.map(data => (
+                            <Col style={{ flexDirection: 'row' }}>
+                              <View style={{ width: fs(1.5), height: fs(1.5), backgroundColor: data.color, borderRadius: 1.5 }}
+                              />
+                              <Text style={{ fontSize: fs(1.3), paddingLeft: fs(.5) }}>{data.name}</Text>
+                            </Col>
+                          ))
+                        }
+                      </Row>
                     </Body>
                   </CardItem>
                 </Card>
 
-              </View>
-              {/* </Col> */}
+                {/* <View
+                  style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'blue'
+                  }}
+                /> */}
+              </Col>
+              <Col size={6}>
+                <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
+                  <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
+                    <Body style={{ display: 'flex', justifyContent: 'center' }}>
+                      <PieChart
+                        data={this.state.chart.presensi}
+                        width={100}
+                        height={100}
+                        hasLegend={false}
+                        // width={screenWidth}
+                        // height={220}
 
-              {/* <Col size={5} style={{ display: 'flex' }}> */}
-              <View
+                        chartConfig={{
+                          backgroundGradientFrom: "#1E2923",
+                          backgroundGradientFromOpacity: 0,
+                          backgroundGradientTo: "#08130D",
+                          backgroundGradientToOpacity: 0.5,
+                          color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
+                          strokeWidth: 2, // optional, default 3
+                          barPercentage: 0.5,
+                          useShadowColorFromDataset: false // optional
+                        }}
+                        accessor="population"
+                        backgroundColor="transparent"
+                        paddingLeft="30"
+                        absolute
+                        style={{
+                          alignSelf: 'center'
+                        }}
+                      />
+
+
+                      <Text style={{
+                        alignSelf: 'center',
+                        color: '#493a76',
+                        fontWeight: 'bold',
+                        fontSize: fs(1.8)
+                      }}>PRESENSI</Text>
+
+                      {/* LEGEND */}
+                      <Row style={{ marginVertical: fs(1) }}>
+                        {
+                          this.state.chart.presensi.map(data => (
+                            <Col style={{ flexDirection: 'row' }}>
+                              <View style={{ width: fs(1.5), height: fs(1.5), backgroundColor: data.color, borderRadius: 1.5 }}
+                              />
+                              <Text style={{ fontSize: fs(1.3), paddingLeft: fs(.5) }}>{data.name}</Text>
+                            </Col>
+                          ))
+                        }
+                      </Row>
+                    </Body>
+                  </CardItem>
+                </Card>
+              </Col>
+
+            </Row>
+
+            <Row style={{ height: 'auto' }}>
+              <Col size={12}>
+
+                <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
+                  <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
+                    <Body>
+                      <Text style={{
+                        fontSize: fs(2.2),
+                        lineHeight: fs(3.8),
+                        color: scheme.primaryText
+                      }}>PENGUMUMAN</Text>
+                      <Text style={{
+                        fontSize: fs(1.6),
+                        lineHeight: fs(3),
+                        color: scheme.primaryText
+                      }}>Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. </Text>
+                    </Body>
+                  </CardItem>
+                </Card>
+              </Col>
+            </Row>
+
+            <View style={{ flexDirection: 'row' }}>
+
+              <TouchableHighlight
+                onPress={this.testAnimate}
                 style={{
-                  alignSelf: 'flex-end',
-                  width: '35%',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  // flexDirection: 'row'
+                  width: w(50),
+                  height: h(10)
                 }}
               >
-                <Animated.Image
-                  source={require('../../../../assets/images/presensi.png')}
-                  style={[{
-                    width: '100%',
-                    alignSelf: 'center',
-                    opacity: blockA.opacity
-                  }]}
-                />
-              </View>
-            </Animated.View>
-          </ImageBackground>
-        </View>
-        <PanGestureHandler
-          onGestureEvent={this.onBlockBPanned}
-          onHandlerStateChange={this.onChangeStateBlockB}
-        >
-          <Animated.ScrollView
-            style={[
-              // blockBTopStyle,
-              {
-                position: 'absolute',
-                width: w(100),
-                backgroundColor: scheme.primaryBg,
-                // top: h(40),
-                top: blockBHeight.value,
-                // top: h(40),
-                borderTopRightRadius: 30,
-                borderTopLeftRadius: 30,
-                paddingHorizontal: fs(2.5),
-                paddingVertical: fs(5),
-                zIndex: 99999,
-                // backgroundColor: 'blue',
-                // transform: [
-                //   { translateY: 100 }
-                // ]
-              }]}
-            contentContainerStyle={{
-              // flexGrow: 1,
-              height: h(200),
-              // flex: 1
-            }}
-
-            scrollEventThrottle={1}
-            stickyHeaderIndices={[1]}
-          >
-            <View style={{ flex: 1 }}>
-
-
-              <Row style={{ height: 'auto' }}>
-                <Col>
-                  <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
-                    <CardItem style={{ backgroundColor: this.state.secondary }}>
-                      <Body style={{ paddingBottom: fs(1) }}>
-                        <Text style={{
-                          color: 'white',
-                          fontSize: fs(2.2),
-                          width: w(70),
-                          lineHeight: fs(3.8)
-                        }}>Anda belum melakukan presensi hari ini</Text>
-                        <Button transparent>
-                          <Text style={{ color: 'white', fontWeight: 'bold', alignSelf: 'flex-end' }}>PRESENSI</Text>
-                        </Button>
-                      </Body>
-                    </CardItem>
-                  </Card>
-                </Col>
-              </Row>
-              {this.renderRegisterLink()}
-              <Row style={{ backgroundColor: scheme.primaryBg, marginVertical: fs(2), height: 'auto' }}>
-                <Col size={6}>
-                  <Card style={{ borderRadius: fs(1), overflow: 'hidden', }}>
-                    <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
-                      <Body style={{ display: 'flex', justifyContent: 'center' }}>
-                        <PieChart
-                          data={this.state.chart}
-                          width={100}
-                          height={100}
-                          hasLegend={false}
-                          // width={screenWidth}
-                          // height={220}
-
-                          chartConfig={{
-                            backgroundGradientFrom: "#1E2923",
-                            backgroundGradientFromOpacity: 0,
-                            backgroundGradientTo: "#08130D",
-                            backgroundGradientToOpacity: 0.5,
-                            color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
-                            strokeWidth: 2, // optional, default 3
-                            barPercentage: 0.5,
-                            useShadowColorFromDataset: false // optional
-                          }}
-                          accessor="population"
-                          backgroundColor="transparent"
-                          paddingLeft="30"
-                          absolute
-                          style={{
-                            alignSelf: 'center'
-                          }}
-                        />
-                      </Body>
-                    </CardItem>
-                  </Card>
-                </Col>
-                <Col size={6}>
-                  <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
-                    <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
-                      <Body style={{ display: 'flex', justifyContent: 'center' }}>
-                        <PieChart
-                          data={this.state.chart}
-                          width={100}
-                          height={100}
-                          hasLegend={false}
-                          // width={screenWidth}
-                          // height={220}
-
-                          chartConfig={{
-                            backgroundGradientFrom: "#1E2923",
-                            backgroundGradientFromOpacity: 0,
-                            backgroundGradientTo: "#08130D",
-                            backgroundGradientToOpacity: 0.5,
-                            color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
-                            strokeWidth: 2, // optional, default 3
-                            barPercentage: 0.5,
-                            useShadowColorFromDataset: false // optional
-                          }}
-                          accessor="population"
-                          backgroundColor="transparent"
-                          paddingLeft="30"
-                          absolute
-                          style={{
-                            alignSelf: 'center'
-                          }}
-                        />
-                      </Body>
-                    </CardItem>
-                  </Card>
-                </Col>
-              </Row>
-
-              <Row style={{ height: 'auto' }}>
-                <Col size={12}>
-
-                  <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
-                    <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
-                      <Body>
-                        <Text style={{
-                          fontSize: fs(2.2),
-                          lineHeight: fs(3.8),
-                          color: scheme.primaryText
-                        }}>PENGUMUMAN</Text>
-                        <Text style={{
-                          fontSize: fs(1.6),
-                          lineHeight: fs(3),
-                          color: scheme.primaryText
-                        }}>Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. </Text>
-                      </Body>
-                    </CardItem>
-                  </Card>
-                </Col>
-              </Row>
-
-              <View style={{ flexDirection: 'row' }}>
-
-                <TouchableHighlight
-                  onPress={this.testAnimate}
-                  style={{
-                    width: w(50),
-                    height: h(10)
-                  }}
-                >
-                </TouchableHighlight>
-                <TouchableHighlight
-                  onPress={() => {
-                    this.props.navigation.navigate('HomeRegisterFaceCamera')
-                  }}
-                  style={{
-                    width: w(50),
-                    height: h(10)
-                  }}
-                >
-                </TouchableHighlight>
-              </View>
+              </TouchableHighlight>
+              <TouchableHighlight
+                onPress={() => {
+                  this.props.navigation.navigate('HomeRegisterFaceCamera')
+                }}
+                style={{
+                  width: w(50),
+                  height: h(10)
+                }}
+              >
+              </TouchableHighlight>
             </View>
-          </Animated.ScrollView>
-        </PanGestureHandler>
+          </View>
+        </Animated.ScrollView>
+        {/* </PanGestureHandler> */}
       </Container >
     )
   }
@@ -600,7 +791,8 @@ const mapDispatchToProps = dispatch => {
     logout: () => dispatch({ type: 'IS_LOGGED_OUT' }),
     hideLogoutAlert: () => dispatch({ type: 'HIDE_LOGOUT_ALERT' }),
     setCompany: (payload) => dispatch({ type: 'SET_COMPANY', company: payload }),
-    resetPresensi: () => dispatch({ type: 'RESET_PRESENSI' })
+    resetPresensi: () => dispatch({ type: 'RESET_PRESENSI' }),
+    editProfile: (payload) => dispatch({ type: 'EDIT_PROFILE', profile: payload })
   }
 }
 

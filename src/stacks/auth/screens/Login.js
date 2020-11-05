@@ -18,8 +18,8 @@ export class Login extends Component {
       form: {
         active: null,
         value: {
-          username: 'admin@gmail.com',
-          password: 'semarang'
+          username: '',
+          password: ''
         },
         secureTextEntry: 'password'
       }
@@ -59,7 +59,7 @@ export class Login extends Component {
 
 
   componentWillUnmount() {
-
+    this.isFocus()
     this.keyboardWillShowSub.remove();
     this.keyboardWillHideSub.remove();
     this.keyboardDidHideListener.remove();
@@ -123,32 +123,53 @@ export class Login extends Component {
   onUserLogin = async () => {
     this.setState({ login: true })
     let login = await API.getDev('login', false, this.state.form.value)
+    // login.profile.face_status = 'waiting'
+    console.log(JSON.stringify(login))
     if (!login.success) {
       this.setState({ login: false })
       return this.presentToast(login.failureMessage)
     }
     await this.props.setToken(login.JWT)
-    const companyInfo = await API.getDev(`view/perusahaan/${login.profile.perusahaan_id}`, true, {})
-    const companyLocation = await API.getDev(`list/lokasi_perusahaan`, true, {
-      perusahaan_id: login.profile.perusahaan_id
+
+    if (login.perusahaan.length == 0)
+      return simpleToast('Anda belum terdaftar di perusahaan')
+    const perusahaanId = login.perusahaan[0].id
+    const companyInfo = await API.getDev(`view/perusahaan/${perusahaanId}`, true, {})
+    const faceId = await API.getDev('FaceId', true, {
+      id: login.profile.id
     })
 
-    console.log('company location', companyLocation)
-
-    const companyConfig = await API.getDev('ConfigPresensi', {
-      id: login.profile.perusahaan_id
-    })
-
-    const faceId = await API.get('faceid', true, {})
+    if (faceId.data.length > 0) {
+      this.props.setFaceId(faceId.data[0].face_id)
+    }
 
     if (!companyInfo.success) {
       return simpleToast('Info perusahaan tidak ditemukan')
     }
-    await this.props.setCompany(companyInfo.perusahaan)
-    await this.props.setCompany(companyLocation.lokasi_perusahaan[0])
-    console.log('Info perusahaan', companyLocation.lokasi_perusahaan[0])
+    console.log('company info', JSON.stringify(companyInfo))
+    const companyLocation = await API.getDev(`list/lokasi_perusahaan`, true, {
+      perusahaan_id: login.profile.perusahaan_id
+    })
+
+    const lastPresensi = await API.getDev('LastPresensi', true, {
+      id: login.profile.id,
+      perusahaan_id: login.profile.perusahaan_id
+    })
+
+    if (lastPresensi.data) {
+      this.props.setLastPresensi(lastPresensi.data)
+    }
+
+    const mergedCompanyInfo = {
+      ...companyInfo.perusahaan,
+      ...companyLocation.lokasi_perusahaan[0]
+    }
+
+    console.log('company info', mergedCompanyInfo)
+
+    this.props.setCompany(mergedCompanyInfo)
     delete login.JWT
-    await this.props.setProfile(login.profile)
+    this.props.setProfile(login.profile)
     this.props.login()
     this.setState({ login: false })
 
@@ -246,37 +267,54 @@ export class Login extends Component {
             />
           </View>
 
-          <Row style={{ marginTop: h(4) }}>
+          {/* <Button
+            onPress={() => {
+              this.props.navigation.navigate('ForgotPassword')
+            }}
+            transparent
+          >
+            <Text style={{ color: '#6200ee' }}>Lupa Password?</Text>
+          </Button> */}
+          <Button
+            full
+            style={{ backgroundColor: this.state.loading ? 'gray' : '#6200ee', borderRadius: 7, marginTop: fs(1) }}
+            disabled={this.state.loading}
+            onPress={this.onUserLogin}
+          >
+            {/* <ActivityIndicator size="small" color="white" style={{ marginLeft: fs(1.5) }} /> */}
+            <Text>Login</Text>
+          </Button>
 
+          <Row style={{ marginTop: fs(2) }}>
             <Col>
-              <Button transparent>
-                <Text style={{ color: '#6200ee' }}>Lupa Password?</Text>
-              </Button>
+              <Text style={{ fontSize: fs(1.9) }}>Belum memiliki akun ?</Text>
             </Col>
             <Col>
-              <Button
-                style={{ backgroundColor: this.state.loading ? 'gray' : '#6200ee', borderRadius: 7, alignSelf: 'flex-end' }}
-                disabled={this.state.loading}
-                onPress={this.onUserLogin}
+              <TouchableOpacity
+                style={{ alignSelf: 'flex-end' }}
+                onPress={() => {
+                  this.props.navigation.navigate('RegisterCode')
+                }}
               >
-                {/* <ActivityIndicator size="small" color="white" style={{ marginLeft: fs(1.5) }} /> */}
-                <Text>Login</Text>
-              </Button>
+                <Text style={{ color: '#6200ee', fontSize: fs(1.9), fontWeight: 'bold' }}>Daftar Sekarang</Text>
+              </TouchableOpacity>
             </Col>
           </Row>
 
+          <TouchableOpacity
+            style={{
+              alignSelf: 'center',
+              marginTop: fs(5)
+            }}
+            onPress={() => {
+              this.props.navigation.navigate('ForgotPassword')
+            }}
+          >
+            <Text style={{ color: '#6200ee', fontWeight: 'bold', fontSize: fs(1.8) }}>Lupa Password</Text>
+          </TouchableOpacity>
+
 
         </Form>
-
-        <TouchableHighlight
-          style={{ width: w(80), height: h(20) }}
-          onPress={() => {
-            this.props.navigation.navigate('RegisterCode')
-          }}
-        />
-
-        {/* </ScrollView> */}
-        {/* </TouchableWithoutFeedback> */}
       </Animated.ScrollView>
     );
   }
@@ -322,7 +360,8 @@ const mapDispatchToProps = dispatch => {
     login: () => dispatch({ type: 'IS_LOGGED_IN' }),
     setProfile: async (payload) => dispatch({ type: 'SET_PROFILE', profile: payload }),
     setCompany: (payload) => dispatch({ type: 'SET_COMPANY', company: payload }),
-    setFaceId: (payload) => dispatch({ type: 'SET_FACE_ID', faceId: payload })
+    setFaceId: (payload) => dispatch({ type: 'SET_FACE_ID', faceId: payload }),
+    setLastPresensi: (payload) => dispatch({ type: 'SET_LAST_PRESENSI', payload: payload })
   }
 }
 
