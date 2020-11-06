@@ -9,6 +9,7 @@ import { connect } from 'react-redux'
 import { TextInput, TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler'
 import { simpleToast } from '../../../utils/DisplayHelper'
 import { API } from '../../../utils/Api'
+import Loading from '../../../components/Loading'
 import Icon from 'react-native-vector-icons/FontAwesome5'
 
 export class RegisterCode extends Component {
@@ -69,7 +70,7 @@ export class RegisterCode extends Component {
   keyboardWillShow = () => {
     Animated.timing(this.avoidingView, {
       duration: 200,
-      toValue: h(15),
+      toValue: h(10),
     }).start();
   };
 
@@ -125,6 +126,7 @@ export class RegisterCode extends Component {
     const { active, scheme } = this.state
     return (
       <Animated.View style={[{ bottom: this.avoidingView, backgroundColor: 'white' }, styles.container]}>
+        <Loading rIf={this.state.buttonLoading} />
         <TouchableWithoutFeedback
           onPress={() => {
             this.keyboardWillHide()
@@ -197,7 +199,7 @@ const styles = StyleSheet.create({
   container: {
     width: w(100),
     height: h(100),
-    flex: 1,
+    // flex: 1,
     // paddingBottom: 100
   },
 

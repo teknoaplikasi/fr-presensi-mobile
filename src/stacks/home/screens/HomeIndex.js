@@ -32,6 +32,7 @@ export class HomeIndex extends Component {
       mode: null,
       primary: '#ffac1f',
       secondary: '#8335f4',
+      announcement: [],
       chart: {
         attendance: [],
         presensi: []
@@ -87,36 +88,40 @@ export class HomeIndex extends Component {
     const faceStatus = await API.getDev('ValidateFace', true, {
       user_id: this.props.auth.profile.id
     })
+
+    const announcement = await API.getDev('list/pengumuman', true, {
+      aktif: 'Y'
+    })
+
+    // console.log('announcement', JSON.stringify(announcement))
+    if (!announcement.success) {
+      simpleToast('Gagal mengambil pengumuman perusahaan')
+    }
+
+    this.setState({
+      announcement: announcement.pengumuman
+    })
     if (!faceStatus.success) {
-      return simpleToast('Gagal mengambil status wajah')
+      simpleToast('Gagal mengambil status wajah')
     }
 
     this.props.editProfile({
       face_status: faceStatus.data.face
     })
 
-    // simpleToast(JSON.stringify(faceStatus.data))
-
     Geolocation.getCurrentPosition(async ({ coords }) => {
-      // return simpleToast(JSON.stringify(coords))
       let locationDetail = await geocodeLatLong(coords.latitude, coords.longitude)
       if (!locationDetail.success) {
 
         this.setState({ refreshing: false })
         return simpleToast('Gagal mendapatkan lokasi anda')
       }
-      // simpleToast(JSON.stringify(locationDetail.result))
       coords.detail = locationDetail.result
       this.setState({
         refreshing: false,
         location: coords
       })
-
     })
-
-
-
-    // return simpleToast('Okay')
   }
 
   componentWillUnmount() {
@@ -125,8 +130,6 @@ export class HomeIndex extends Component {
   }
 
   initValue = async () => {
-
-
     let isPresensiIn = false
     const lastPresensi = this.props.presensi.last_presensi
     const dateNow = moment().format('YYYY-MM-DD')
@@ -227,7 +230,6 @@ export class HomeIndex extends Component {
   onChangeStateBlockB = (event) => {
     //end state
     if (event.nativeEvent.state == 5) {
-      console.log('initial Y, trans y', this.blockBTop, event.nativeEvent.translationY)
       const initialY = this.blockBTop
       const transY = event.nativeEvent.translationY
       const absoluteY = event.nativeEvent.absoluteY
@@ -540,7 +542,9 @@ export class HomeIndex extends Component {
               textColor="white"
               button="PRESENSI"
               onPress={() => {
-                this.props.navigation.navigate('HomeFacePresensiCamera')
+                this.props.navigation.navigate('HomeFacePresensiCamera', {
+                  flag: 'I'
+                })
               }}
               text="Anda belum melakukan presensi hari ini"
               rIf={auth.profile.face_status == 'Y' && !hasPresensi}
@@ -707,25 +711,28 @@ export class HomeIndex extends Component {
             </Row>
 
             <Row style={{ height: 'auto' }}>
-              <Col size={12}>
+              {this.state.announcement.map(list => (
+                <Col size={12}>
 
-                <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
-                  <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
-                    <Body>
-                      <Text style={{
-                        fontSize: fs(2.2),
-                        lineHeight: fs(3.8),
-                        color: scheme.primaryText
-                      }}>PENGUMUMAN</Text>
-                      <Text style={{
-                        fontSize: fs(1.6),
-                        lineHeight: fs(3),
-                        color: scheme.primaryText
-                      }}>Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. </Text>
-                    </Body>
-                  </CardItem>
-                </Card>
-              </Col>
+                  <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
+                    <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
+                      <Body>
+                        <Text style={{
+                          fontSize: fs(2.2),
+                          lineHeight: fs(3.8),
+                          color: scheme.primaryText
+                        }}>{list.judul}</Text>
+                        <Text style={{
+                          fontSize: fs(1.6),
+                          lineHeight: fs(3),
+                          color: scheme.primaryText
+                        }}>{list.isi}</Text>
+                      </Body>
+                    </CardItem>
+                  </Card>
+                </Col>
+
+              ))}
             </Row>
 
             <View style={{ flexDirection: 'row' }}>

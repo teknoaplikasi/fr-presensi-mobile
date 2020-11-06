@@ -13,6 +13,7 @@ import Chip from '../../../components/Chip'
 import { connect } from 'react-redux'
 import { Button } from 'native-base'
 import { simpleToast } from '../../../utils/DisplayHelper'
+import Sound from 'react-native-sound'
 
 export class RegisterFaceCamera extends Component {
   constructor() {
@@ -28,6 +29,7 @@ export class RegisterFaceCamera extends Component {
 
     this.takePicture = this.takePicture.bind(this)
     this.registerImage = this.registerImage.bind(this)
+    this.beep = new Sound(require('../../../../assets/sound/beep.wav'))
   }
 
   componentDidMount = () => {
@@ -86,16 +88,24 @@ export class RegisterFaceCamera extends Component {
       face_registered: 'Y',
       face_status: 'W'
     })
-    await this.props.setFaceId(faceId)
+    this.props.setFaceId(faceId)
 
     this.setState({
       registerStatus: true,
       registerStatusMsg: 'Registrasi Wajah Berhasil'
     })
 
+    this.beep.play()
+
+    await this.sleep(1000)
+
     this.props.navigation.pop()
 
 
+  }
+
+  sleep = (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 
   presentToast = (message) => {

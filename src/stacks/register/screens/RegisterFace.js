@@ -27,6 +27,13 @@ export class RegisterFace extends Component {
         kota_id: null
       },
 
+      error: {
+        nama: false,
+        email: false,
+        password: false,
+        kota_id: false
+      },
+
       selectedKota: {
         id: null,
         name: ''
@@ -40,6 +47,7 @@ export class RegisterFace extends Component {
     this.setInputFocus = this.setInputFocus.bind(this)
     this.onPressRegister = this.onPressRegister.bind(this)
     this.onPressSearchCity = this.onPressSearchCity.bind(this)
+    this.validateField = this.validateField.bind(this)
     this.avoidingView = new Animated.Value(0)
   }
 
@@ -132,14 +140,58 @@ export class RegisterFace extends Component {
     })
   }
 
+  validateField = (field) => {
+    if (field == 'nama' || field == 'password' || field == 'kota_id') {
+      this.setState(prevState => ({
+        error: {
+          ...prevState.error,
+          [field]: !this.state.value[field] ? `${field.replace(/ /g, " ")} harus diisi` : false
+        }
+      }))
+    }
+
+    else if (field == 'email') {
+      if (!this.state.value.email) {
+        return this.setState(prevState => ({
+          error: {
+            ...prevState.error,
+            email: 'Email harus diisi'
+          }
+        }))
+      }
+      this.setState(prevState => ({
+        error: {
+          ...prevState.error,
+          email: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(String(this.state.value.email)) ? false : 'Email tidak valid'
+        }
+      }))
+    }
+
+    else {
+      return
+    }
+  }
+
   onPressSearchCity = () => {
     this.props.navigation.navigate('AuthSearchCity', {
       onSelect: (item) => {
         // alert(JSON.stringify(item))
+        if (!item || !item.id) {
+          return this.setState(prevState => ({
+            error: {
+              ...prevState.error,
+              kota_id: 'Kota harus dipilih'
+            }
+          }))
+        }
         this.setState(prevState => ({
           selectedKota: {
             id: item.id,
             name: item.nama
+          },
+          error: {
+            ...prevState.error,
+            kota_id: false
           },
           value: {
             ...prevState.value,
@@ -160,18 +212,25 @@ export class RegisterFace extends Component {
   }
 
   onPressRegister = async () => {
-    console.log(this.state.value)
+
+    //validate
+    let isValid = false
+    Object.keys(this.state.value).forEach((key) => {
+      this.validateField(key)
+      if (this.state.value[key])
+        isValid = true
+      else
+        isValid = false
+    })
+
+    if (!isValid) return
+
+    console.log('isvalid', isValid)
     let submit = await API.postDev('register', true, this.state.value)
     console.log(submit)
     if (!submit.success) {
       return simpleToast(submit.failureMessage)
     }
-
-    // this.props.navigation.navigate('RegisterSuccess', {
-    //   email: this.state.value.email
-    // })
-
-    console.log('resgister', JSON.stringify(submit))
 
     this.props.navigation.dispatch(
       CommonActions.reset({
@@ -189,7 +248,7 @@ export class RegisterFace extends Component {
 
 
   render() {
-    const { schema, active } = this.state
+    const { schema, active, error } = this.state
     return (
       <Animated.View
         style={[
@@ -241,53 +300,88 @@ export class RegisterFace extends Component {
                 styles.formInput,
                 {
                   borderColor: active == 'nama' ? '#6200ee' : 'rgba(172, 172, 172, 0.5)'
-                }
+                },
+
+                error.nama && { borderColor: 'red' }
               ]}>
                 <TextInput
                   placeholder="Nama"
                   returnKeyType="next"
                   onFocus={() => this.setInputFocus('nama')}
                   onChangeText={(e) => this.setInputValue('nama', e)}
-                  onEndEditing={() => this.setInputFocus(null)}
+                  onEndEditing={() => {
+                    this.setInputFocus(null)
+                    this.validateField('nama')
+                  }}
                   value={this.state.value.nama}
                 />
+
               </View>
+
+              {error.nama && <Text style={{ color: 'red', marginBottom: fs(1), fontSize: fs(1.5) }}>{error.nama}</Text>}
               <View style={[styles.formInput,
               {
                 borderColor: active == 'email' ? '#6200ee' : 'rgba(172, 172, 172, 0.5)'
-              }]}>
+              },
+              error.email && { borderColor: 'red' }
+              ]}>
                 <TextInput
                   placeholder="Email"
                   keyboardType="email-address"
                   returnKeyType="next"
                   onFocus={() => this.setInputFocus('email', h(20))}
                   onChangeText={(e) => this.setInputValue('email', e)}
-                  onEndEditing={() => this.setInputFocus(null)}
+                  onEndEditing={() => {
+                    this.setInputFocus(null)
+                    this.validateField('email')
+                  }}
                   value={this.state.value.email}
                 />
               </View>
+              {error.email && <Text style={{ color: 'red', marginBottom: fs(1), fontSize: fs(1.5) }}>{error.email}</Text>}
               <View style={[styles.formInput,
               {
                 borderColor: active == 'password' ? '#6200ee' : 'rgba(172, 172, 172, 0.5)'
-              }]}>
+              },
+              error.password && { borderColor: 'red' }
+              ]}>
                 <TextInput
                   placeholder="Password"
                   returnKeyType="done"
                   secureTextEntry={true}
                   onFocus={() => this.setInputFocus('password', h(30))}
                   onChangeText={(e) => this.setInputValue('password', e)}
-                  onEndEditing={() => this.setInputFocus(null)}
+                  onEndEditing={() => {
+                    this.setInputFocus(null)
+                    this.validateField('password')
+                  }}
                   value={this.state.value.password}
                 />
               </View>
 
+              {error.password && <Text style={{ color: 'red', marginBottom: fs(1), fontSize: fs(1.5) }}>{error.password}</Text>}
 
-              <TouchableOpacity style={[styles.formInput, { borderColor: 'rgba(172, 172, 172, 0.5)', flexDirection: 'row', backgroundColor: 'rgba(172, 172, 172, 0.05)', height: 50 }]} onPress={this.onPressSearchCity}>
+
+              <TouchableOpacity
+                style={
+                  [styles.formInput,
+                  {
+                    borderColor: 'rgba(172, 172, 172, 0.5)',
+                    flexDirection: 'row',
+                    backgroundColor: 'rgba(172, 172, 172, 0.05)',
+                    height: 50
+                  },
+
+                  error.kota_id && { borderColor: 'red' }
+                  ]}
+                onPress={this.onPressSearchCity}>
                 <Text style={{
                   alignSelf: 'center',
                   paddingLeft: fs(1)
                 }}>{this.state.selectedKota.name ? this.state.selectedKota.name : 'Pilih Kota'}</Text>
               </TouchableOpacity>
+
+              {error.kota_id && <Text style={{ color: 'red', marginBottom: fs(1), fontSize: fs(1.5) }}>{error.kota_id}</Text>}
 
               <View style={styles.formButton}>
 
@@ -317,14 +411,14 @@ const styles = StyleSheet.create({
 
   blockAWrapper: {
     width: w(100),
-    // height: h(65),
+    height: h(65),
     backgroundColor: 'white'
   },
 
   form: {
     // backgroundColor: 'grey',
     paddingHorizontal: fs(5),
-    height: h(100),
+    // height: h(100),
     // position: 'relative'
     // flex: 1,
   },
@@ -340,7 +434,8 @@ const styles = StyleSheet.create({
     // display: 'flex',
     // flexDirection: 'row',
     // justifyContent: 'space-between',
-    marginTop: fs(3)
+    paddingTop: fs(3),
+    paddingBottom: fs(5)
     // paddingTop: fs(5)
   }
 })
