@@ -8,6 +8,7 @@ import { decodeJWT } from '../../../utils/AuthHelper';
 import { connect } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome5'
 import { simpleToast } from '../../../utils/DisplayHelper';
+import Loading from '../../../components/Loading'
 
 export class Login extends Component {
   constructor(props) {
@@ -21,8 +22,13 @@ export class Login extends Component {
           username: '',
           password: ''
         },
+        error: {
+          username: false,
+          password: false
+        },
         secureTextEntry: 'password'
-      }
+      },
+      login: false
     }
 
     this.setInputFocus = this.setInputFocus.bind(this)
@@ -31,6 +37,7 @@ export class Login extends Component {
     this.keyboardWillHide = this.keyboardWillHide.bind(this)
     this.onUserLogin = this.onUserLogin.bind(this)
     this.setSecureTextEntry = this.setSecureTextEntry.bind(this)
+    this.validateField = this.validateField.bind(this)
 
     this.avoidingView = new Animated.Value(0)
   }
@@ -98,6 +105,17 @@ export class Login extends Component {
     }))
   }
 
+  validateField = (field) => {
+    this.setState(prevState => ({
+      form: {
+        ...prevState.form,
+        error: {
+          ...prevState.error,
+          [field]: !this.state.form.value[field] ? `${field} harus diisi` : false
+        }
+      }
+    }))
+  }
 
   setInputValue = (field, value) => {
     this.setState(prevState => ({
@@ -121,10 +139,22 @@ export class Login extends Component {
   }
 
   onUserLogin = async () => {
+
+    this.setState(prevState => ({
+      form: {
+        ...prevState.form,
+        error: {
+          username: !this.state.form.value.username ? 'Email harus diisi' : false,
+          password: !this.state.form.value.password ? 'Password harus diisi' : false,
+        }
+      }
+    }))
+
+    if (!this.state.form.value.username || !this.state.form.value.password)
+      return
+
     this.setState({ login: true })
     let login = await API.getDev('login', false, this.state.form.value)
-    // login.profile.face_status = 'waiting'
-    console.log(JSON.stringify(login))
     if (!login.success) {
       this.setState({ login: false })
       return this.presentToast(login.failureMessage)
@@ -165,7 +195,6 @@ export class Login extends Component {
       ...companyLocation.lokasi_perusahaan[0]
     }
 
-    console.log('company info', mergedCompanyInfo)
 
     this.props.setCompany(mergedCompanyInfo)
     delete login.JWT
@@ -187,135 +216,139 @@ export class Login extends Component {
   render() {
     const { form } = this.state
     return (
-      <Animated.ScrollView
-        style={{
-          flex: 1,
-          display: 'flex',
-          bottom: this.avoidingView,
-          width: w(100),
-          height: h(100),
-          backgroundColor: 'white'
-        }}
-      >
-        <View style={{
-          position: 'relative'
-        }}>
-          <ImageBackground
-            source={require('../../../../assets/images/home-bg-light.png')}
-            style={{
-              width: w(100),
-              height: h(45),
-              backgroundColor: '#ffac1f'
-            }}
-          >
-          </ImageBackground>
-
-          {/* TEXT TITLE */}
+      <React.Fragment>
+        <Loading rIf={this.state.login} />
+        <Animated.ScrollView
+          style={{
+            flex: 1,
+            display: 'flex',
+            bottom: this.avoidingView,
+            width: w(100),
+            height: h(100),
+            backgroundColor: 'white'
+          }}
+        >
           <View style={{
-            position: 'absolute',
-            bottom: h(7),
-            left: w(10)
+            position: 'relative'
           }}>
-            <Text style={styles.appTitle}>Presensi</Text>
-            <Text style={styles.appTitle}>Attendance</Text>
-          </View>
-
-        </View>
-        <Form style={styles.form}>
-          <View style={[
-            styles.inputLabel,
-            form.active == 'username' && { borderColor: '#6200ee' },
-            form.active != 'username' && { borderColor: 'rgba(172, 172, 172, 0.5)' },
-          ]}>
-
-            <TextInput
-              onChangeText={(e) => this.setInputValue('username', e)}
-              value={form.value.username}
-              placeholder="Username/Email"
-              onFocus={() => this.setInputFocus('username', h(0))}
-              onEndEditing={() => this.setInputFocus(null)}
-            />
-          </View>
-          <View style={[
-            styles.inputLabel,
-            form.active == 'password' && { borderColor: '#6200ee' },
-            form.active != 'password' && { borderColor: 'rgba(172, 172, 172, 0.5)' },
-          ]}>
-            <TextInput
-              placeholder="Password"
-              secureTextEntry={form.secureTextEntry == 'password'}
-              onChangeText={(e) => this.setInputValue('password', e)}
-              value={form.value.password}
-              onFocus={() => this.setInputFocus('password', h(10))}
-              onEndEditing={() => this.setInputFocus(null)}
-            />
-
-
-            <Icon
-              name={form.secureTextEntry ? 'eye-slash' : 'eye'}
-              size={fs(3)}
-              color={form.secureTextEntry ? "rgba(178,178,178,.5)" : 'black'}
+            <ImageBackground
+              source={require('../../../../assets/images/home-bg-light.png')}
               style={{
-                position: 'absolute',
-                right: fs(2),
-                top: '50%',
-                transform: [
-                  { translateY: fs(-1.5) }
-                ]
+                width: w(100),
+                height: h(45),
+                backgroundColor: '#ffac1f'
               }}
-              onPress={() => this.setSecureTextEntry(form.secureTextEntry ? null : 'password')}
-            />
+            >
+            </ImageBackground>
+
+            {/* TEXT TITLE */}
+            <View style={{
+              position: 'absolute',
+              bottom: h(7),
+              left: w(10)
+            }}>
+              <Text style={styles.appTitle}>Presensi</Text>
+              <Text style={styles.appTitle}>Attendance</Text>
+            </View>
+
           </View>
+          <View style={styles.form}>
+            <View style={[
+              styles.inputLabel,
+              form.active == 'username' && { borderColor: '#6200ee' },
+              form.active != 'username' && { borderColor: 'rgba(172, 172, 172, 0.5)' },
+              form.error.username && { borderColor: 'red' },
+            ]}>
 
-          {/* <Button
-            onPress={() => {
-              this.props.navigation.navigate('ForgotPassword')
-            }}
-            transparent
-          >
-            <Text style={{ color: '#6200ee' }}>Lupa Password?</Text>
-          </Button> */}
-          <Button
-            full
-            style={{ backgroundColor: this.state.loading ? 'gray' : '#6200ee', borderRadius: 7, marginTop: fs(1) }}
-            disabled={this.state.loading}
-            onPress={this.onUserLogin}
-          >
-            {/* <ActivityIndicator size="small" color="white" style={{ marginLeft: fs(1.5) }} /> */}
-            <Text>Login</Text>
-          </Button>
-
-          <Row style={{ marginTop: fs(2) }}>
-            <Col>
-              <Text style={{ fontSize: fs(1.9) }}>Belum memiliki akun ?</Text>
-            </Col>
-            <Col>
-              <TouchableOpacity
-                style={{ alignSelf: 'flex-end' }}
-                onPress={() => {
-                  this.props.navigation.navigate('RegisterCode')
+              <TextInput
+                onChangeText={(e) => this.setInputValue('username', e)}
+                value={form.value.username}
+                placeholder="Email"
+                onFocus={() => this.setInputFocus('username', null)}
+                onEndEditing={() => {
+                  this.setInputFocus(null)
+                  this.validateField('username')
                 }}
-              >
-                <Text style={{ color: '#6200ee', fontSize: fs(1.9), fontWeight: 'bold' }}>Daftar Sekarang</Text>
-              </TouchableOpacity>
-            </Col>
-          </Row>
+              />
+            </View>
+            {form.error.username && <Text style={{ color: 'red', fontSize: fs(1.5), marginBottom: fs(1) }}>Email harus diisi</Text>}
+            <View style={[
+              styles.inputLabel,
+              form.active == 'password' && { borderColor: '#6200ee' },
+              form.active != 'password' && { borderColor: 'rgba(172, 172, 172, 0.5)' },
+              form.error.password && { borderColor: 'red' },
+            ]}>
+              <TextInput
+                placeholder="Password"
+                secureTextEntry={form.secureTextEntry == 'password'}
+                onChangeText={(e) => this.setInputValue('password', e)}
+                value={form.value.password}
+                onFocus={() => this.setInputFocus('password', h(5))}
+                onEndEditing={() => {
+                  this.setInputFocus(null)
+                  this.validateField('password')
+                }}
+              />
 
-          <TouchableOpacity
-            style={{
-              alignSelf: 'center',
-              marginTop: fs(5)
-            }}
-            onPress={() => {
-              this.props.navigation.navigate('ForgotPassword')
-            }}
-          >
-            <Text style={{ color: '#6200ee', fontWeight: 'bold', fontSize: fs(1.8) }}>Lupa Password</Text>
-          </TouchableOpacity>
+
+              <Icon
+                name={form.secureTextEntry ? 'eye-slash' : 'eye'}
+                size={fs(3)}
+                color={form.secureTextEntry ? "rgba(178,178,178,.5)" : 'black'}
+                style={{
+                  position: 'absolute',
+                  right: fs(2),
+                  top: '50%',
+                  transform: [
+                    { translateY: fs(-1.5) }
+                  ]
+                }}
+                onPress={() => this.setSecureTextEntry(form.secureTextEntry ? null : 'password')}
+              />
+            </View>
+
+            {form.error.password && <Text style={{ color: 'red', fontSize: fs(1.5), marginBottom: fs(1) }}>Password harus diisi</Text>}
+            <Button
+              full
+              style={{ backgroundColor: this.state.loading ? 'gray' : '#6200ee', borderRadius: 7, marginTop: fs(1) }}
+              disabled={this.state.loading}
+              onPress={this.onUserLogin}
+            >
+              <Text>Login</Text>
+            </Button>
+
+            <Row style={{ marginTop: fs(2) }}>
+              <Col>
+                <Text style={{ fontSize: fs(1.9) }}>Belum memiliki akun ?</Text>
+              </Col>
+              <Col>
+                <TouchableOpacity
+                  style={{ alignSelf: 'flex-end' }}
+                  onPress={() => {
+                    this.props.navigation.navigate('RegisterCode')
+                  }}
+                >
+                  <Text style={{ color: '#6200ee', fontSize: fs(1.9), fontWeight: 'bold' }}>Daftar Sekarang</Text>
+                </TouchableOpacity>
+              </Col>
+            </Row>
+
+            <TouchableOpacity
+              style={{
+                alignSelf: 'center',
+                marginTop: fs(5)
+              }}
+              onPress={() => {
+                this.props.navigation.navigate('ForgotPassword')
+              }}
+            >
+              <Text style={{ color: '#6200ee', fontWeight: 'bold', fontSize: fs(1.8) }}>Lupa Password</Text>
+            </TouchableOpacity>
 
 
-        </Form>
-      </Animated.ScrollView>
+          </View>
+        </Animated.ScrollView>
+      </React.Fragment>
     );
   }
 }
@@ -323,7 +356,10 @@ export class Login extends Component {
 const styles = StyleSheet.create({
   form: {
     paddingHorizontal: fs(2),
-    paddingVertical: fs(3)
+    paddingVertical: fs(3),
+    flex: 1,
+    backgroundColor: 'white',
+    height: h(100),
   },
 
   formGroup: {

@@ -50,7 +50,7 @@ class HomePresensiHistory extends Component {
   // https://www.google.com/maps/place/PT+TEKNO+APLIKASI+SEJAHTERA+BASECAMP/@-7.0320996,110.4948269,17z/data=!3m1!4b1!4m5!3m4!1s0x2e708dbfe592e8dd:0x443bbcd9ec773060!8m2!3d-7.0320996!4d110.4970156
 
   getData = async () => {
-    moment().locale('id')
+    // moment().locale('id')
     let histories = await API.getDev('RiwayatPresensi', true, {
       perusahaan_id: this.props.auth.profile.perusahaan_id,
       id: this.props.auth.profile.id
