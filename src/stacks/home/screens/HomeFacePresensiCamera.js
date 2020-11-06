@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { Text, View, StyleSheet, ImageBackground, ToastAndroid, StatusBar, ActivityIndicator, Image, Modal } from 'react-native'
+import { Text, View, StyleSheet, ImageBackground, ToastAndroid, StatusBar, ActivityIndicator, Image, Modal, BackHandler } from 'react-native'
 import { Button } from 'native-base'
 import { RNCamera } from 'react-native-camera'
 import { TouchableOpacity } from 'react-native-gesture-handler'
@@ -50,6 +50,7 @@ export class HomeFacePresensiCamera extends Component {
     // this.getCurrentLocation()
     this.initValue()
     this.getCurrentLocation()
+    BackHandler.addEventListener('hardwareBackPress', this.handleBackButton)
 
     this.isFocus = this.props.navigation.addListener('focus', () => {
       // this.camera.
@@ -64,6 +65,14 @@ export class HomeFacePresensiCamera extends Component {
 
 
     // StatusBar.setHidden(true)
+  }
+
+  handleBackButton = () => {
+    // simpleToast('back pressed')
+    if (this.state.mode == 'preview')
+      return true
+    else
+      return false
   }
 
   getCurrentLocation = async () => {
@@ -91,11 +100,12 @@ export class HomeFacePresensiCamera extends Component {
   componentWillUnmount() {
     this.camera
     this.isFocus()
+    BackHandler.removeEventListener('hardwareBackPress')
   }
 
   validateLocation = async () => {
     // const { latitude, longitude } = this.state
-    console.log('test')
+    // console.log('test')
     if (!this.props.auth.company.latitude || !this.props.auth.company.longitude) {
       return simpleToast('Lokasi perusahaan belum diatur. Hubungi admin')
     }

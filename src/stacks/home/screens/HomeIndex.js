@@ -399,7 +399,10 @@ export class HomeIndex extends Component {
                 }}
               >
                 <TouchableOpacity
-                  onPress={this.testAnimate}
+                  onPress={() => {
+                    this.props.logout()
+                    this.props.resetPresensi()
+                  }}
                 >
                   <Icon name="bars" color="white" size={fs(3)} style={{ alignSelf: 'center', height: '100%', paddingTop: fs(1.2) }} />
                 </TouchableOpacity>
