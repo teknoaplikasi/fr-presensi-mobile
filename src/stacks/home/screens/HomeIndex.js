@@ -263,8 +263,6 @@ export class HomeIndex extends Component {
   }
 
   testAnimate = () => {
-    this.props.resetPresensi()
-    this.props.logout()
     // this.blockBTop
     // Animated.timing(this.blockBTop, {
     //   duration: 200,
@@ -400,7 +398,9 @@ export class HomeIndex extends Component {
 
                 }}
               >
-                <TouchableOpacity>
+                <TouchableOpacity
+                  onPress={this.testAnimate}
+                >
                   <Icon name="bars" color="white" size={fs(3)} style={{ alignSelf: 'center', height: '100%', paddingTop: fs(1.2) }} />
                 </TouchableOpacity>
 
@@ -734,7 +734,7 @@ export class HomeIndex extends Component {
 
               ))}
             </Row>
-
+            {/* 
             <View style={{ flexDirection: 'row' }}>
 
               <TouchableHighlight
@@ -755,7 +755,7 @@ export class HomeIndex extends Component {
                 }}
               >
               </TouchableHighlight>
-            </View>
+            </View> */}
           </View>
         </Animated.ScrollView>
         {/* </PanGestureHandler> */}
