@@ -14,7 +14,7 @@ import moment from 'moment'
 import BadgePresensi from '../components/BadgePresensi'
 
 import Geolocation from '@react-native-community/geolocation'
-import { geocodeLatLong, geofenceRadius } from '../../../utils/GeolocationHelper'
+import { geocodeLatLong, geofenceRadius, shortestDistance } from '../../../utils/GeolocationHelper'
 import { simpleToast } from '../../../utils/DisplayHelper';
 
 
@@ -50,7 +50,10 @@ export class HomeIndex extends Component {
       blockA: {
         opacity: new Animated.Value(1),
         transitionY: fs(-3)
-      }
+      },
+
+      presensiProhibited: null,
+      presensiRadius: 0
 
     }
 
@@ -69,9 +72,9 @@ export class HomeIndex extends Component {
 
   componentDidMount = async () => {
     // login
-
-    // this.getData()
-    // this.initValue()
+    this.getData()
+    this.initValue()
+    this.initChart()
     this.isFocus = this.props.navigation.addListener('focus', () => {
       this.getData()
       this.initValue()
@@ -89,20 +92,35 @@ export class HomeIndex extends Component {
     // }, 1000)
   }
 
+  testValidasi = async () => {
+    simpleToast(JSON.stringify(this.state.location))
+    const check = await shortestDistance(this.state.location, this.props.presensi.presensi_conf)
+
+    this.setState({
+      presensiProhibited: check.presensiProhibited,
+      // presensiProhibited: true,
+      presensiRadius: check.shortestDistance.radius,
+    })
+
+  }
+
   getData = async () => {
-    const faceStatus = await API.getDev('ValidateFace', true, {
-      user_id: this.props.auth.profile.id
-    })
+    const faceStatus = await API.getDev('ValidateFace', true, { user_id: this.props.auth.profile.id })
+    const announcement = await API.getDev('list/pengumuman', true, { aktif: 'Y' })
+    const presensiConfig = await API.getDev('ConfigPresensi', true, { id: this.props.auth.profile.perusahaan_id })
+    // simpleToast(JSON.stringify(presensiConfig))
 
-    const announcement = await API.getDev('list/pengumuman', true, {
-      aktif: 'Y'
-    })
+    //dispatch presensi config
+    // simpleToast(typeof (presensiConfig.data))
+    console.log(presensiConfig)
+    if (!presensiConfig.success)
+      simpleToast("Gagal mengambil data konfigurasi presensi")
+    else
+      this.props.setPresensiConfig(presensiConfig.data)
 
-    // console.log('announcement', JSON.stringify(announcement))
     if (!announcement.success) {
       simpleToast('Gagal mengambil pengumuman perusahaan')
     }
-
     this.setState({
       announcement: announcement.pengumuman
     })
@@ -125,6 +143,9 @@ export class HomeIndex extends Component {
       this.setState({
         refreshing: false,
         location: coords
+      }, () => {
+
+        this.testValidasi()
       })
     })
   }
@@ -480,7 +501,7 @@ export class HomeIndex extends Component {
                 width: w(100),
                 justifyContent: 'center'
               }}
-              source={mode == 'light' ? require('../../../../assets/images/home-bg-light.png') : require('../../../../assets/images/home-bg-dark.png')}
+              source={require('../../../../assets/images/home-bg-light.png')}
             >
 
               <View
@@ -868,7 +889,8 @@ const mapDispatchToProps = dispatch => {
     hideLogoutAlert: () => dispatch({ type: 'HIDE_LOGOUT_ALERT' }),
     setCompany: (payload) => dispatch({ type: 'SET_COMPANY', company: payload }),
     resetPresensi: () => dispatch({ type: 'RESET_PRESENSI' }),
-    editProfile: (payload) => dispatch({ type: 'EDIT_PROFILE', profile: payload })
+    editProfile: (payload) => dispatch({ type: 'EDIT_PROFILE', profile: payload }),
+    setPresensiConfig: (payload) => dispatch({ type: 'SET_PRESENSI_CONFIG', presensi_conf: payload }),
   }
 }
 

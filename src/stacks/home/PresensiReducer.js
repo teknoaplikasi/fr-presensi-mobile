@@ -7,7 +7,8 @@ const intitialState = {
     jam: null,
     flag: null,
     perusahaan_id: null
-  }
+  },
+  presensi_conf: []
 }
 
 const PresensiReducer = (state = intitialState, action) => {
@@ -23,6 +24,13 @@ const PresensiReducer = (state = intitialState, action) => {
 
     case 'RESET_PRESENSI':
       return intitialState
+
+
+    case 'SET_PRESENSI_CONFIG':
+      return {
+        ...state,
+        presensi_conf: action.presensi_conf
+      }
     default:
       return state
   }

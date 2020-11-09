@@ -258,21 +258,15 @@ export class HomeFacePresensiCamera extends Component {
   }
 
   renderModal() {
-
-    // const { home, hideLogoutAlert } = this.props
-    // const { blockBHeight, blockA, mode, scheme, logoutModalVisible } = this.state
     const primaryText = '#705499'
     const buttonColor = '#6200ee'
     return (
       <Modal
         testID={'modal'}
-        isVisible={true}
+        isVisible={!this.props.route.params.presensiProhibited}
         onBackButtonPress={() => {
-          this.setState({
-            alertLocation: false,
-          }, () => {
-            this.props.navigation.pop()
-          })
+          this.props.route.params.presensiProhibited = false
+          this.props.navigation.pop()
         }}
         backdropColor="rgba(0,0,0,.5)"
         backdropOpacity={0.8}
@@ -308,7 +302,7 @@ export class HomeFacePresensiCamera extends Component {
             }}
           >
             <Text style={{ fontWeight: 'bold', fontSize: fs(2.8), textAlign: 'center' }}>Presensi Ditolak</Text>
-            <Text style={{ marginTop: fs(2), fontSize: fs(1.7), textAlign: 'center' }}>Presensi hanya dapat dilakukan radius {this.props.auth.company.radius} meter dari lokasi perusahaan. Pastikan blabla dan coba lagi</Text>
+            <Text style={{ marginTop: fs(2), fontSize: fs(1.7), textAlign: 'center' }}>Presensi hanya dapat dilakukan radius {this.props.route.params.radius} meter dari lokasi perusahaan. Pastikan blabla dan coba lagi</Text>
             <View style={{
               paddingTop: fs(5),
               flexDirection: 'column',
@@ -316,7 +310,7 @@ export class HomeFacePresensiCamera extends Component {
               width: '100%',
             }}>
 
-              <Button
+              {/* <Button
                 style={{
                   backgroundColor: buttonColor,
                   width: '100%',
@@ -336,7 +330,7 @@ export class HomeFacePresensiCamera extends Component {
                 }}
               >
                 <Text style={{ color: 'white' }}>Ulangi</Text>
-              </Button>
+              </Button> */}
               <Button
                 style={{
                   backgroundColor: '#fafafa',
@@ -540,7 +534,7 @@ export class HomeFacePresensiCamera extends Component {
               </View>}
 
 
-              {this.state.alertLocation ? this.renderModal() : null}
+              {this.props.route.params.presensiProhibited ? null : this.renderModal()}
               {this.state.registerStatus &&
                 <View
                   style={{
