@@ -72,9 +72,9 @@ export class HomeIndex extends Component {
 
   componentDidMount = async () => {
     // login
-    this.getData()
-    this.initValue()
-    this.initChart()
+    // this.getData()
+    // this.initValue()
+    // this.initChart()
     this.isFocus = this.props.navigation.addListener('focus', () => {
       this.getData()
       this.initValue()
@@ -93,7 +93,7 @@ export class HomeIndex extends Component {
   }
 
   testValidasi = async () => {
-    simpleToast(JSON.stringify(this.state.location))
+    // simpleToast(JSON.stringify(this.state.location))
     const check = await shortestDistance(this.state.location, this.props.presensi.presensi_conf)
 
     this.setState({
