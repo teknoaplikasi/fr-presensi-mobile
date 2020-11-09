@@ -82,23 +82,6 @@ class HomePresensiHistory extends Component {
       statusData: histories.success,
       loading: false
     })
-    return
-
-    await Promise.all(
-      histories.history_presensi.map(history => {
-        history.date = moment(history.date).format('DD MMMM YYYY')
-        history.in = moment(history.in).format('HH:mm')
-        history.out = moment(history.out).format('HH:mm')
-      })
-    )
-
-    this.setState({
-      histories: histories.history_presensi,
-      statusData: histories.success,
-      loading: false
-    })
-    // console.log('result', histories)
-    // this.setState({})
   }
 
   onRefresh = () => {
@@ -208,10 +191,10 @@ class HomePresensiHistory extends Component {
                         }}
                       >
                         <Icon name="stopwatch" style={{ color: '#0cad71' }} size={fs(3)} />
-                        <View style={{ marginLeft: fs(1) }}>
+                        <View style={{ paddingLeft: fs(1), paddingRight: fs(3) }}>
                           <Text style={{ fontWeight: 'bold', color: '#705499' }}>Masuk {history.in}</Text>
                           <Text style={{ fontWeight: 'bold', color: '#705499' }}>Keluar {history.out}</Text>
-                          <Text style={{ color: '#705499', marginTop: fs(1) }}> di {history.presensi}</Text>
+                          <Text numberOfLines={3} style={{ color: '#705499', marginTop: fs(1) }}> di {history.presensi}</Text>
                         </View>
                       </Row>
                     </Col>

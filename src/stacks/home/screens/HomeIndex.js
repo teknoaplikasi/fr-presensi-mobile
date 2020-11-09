@@ -1,9 +1,9 @@
 import React, { Component } from 'react'
 
-import { StyleSheet, Image, View, StatusBar, ImageBackground, Animated, Easing, Appearance, ActivityIndicator, RefreshControl } from 'react-native'
+import { StyleSheet, Image, View, StatusBar, ImageBackground, Animated, Easing, Appearance, ActivityIndicator, RefreshControl, TouchableOpacity as TouchableOpacityRN } from 'react-native'
 import { responsiveWidth as w, responsiveHeight as h, responsiveFontSize as fs } from 'react-native-responsive-dimensions'
 import { API } from '../../../utils/Api'
-import { Container, Header, Content, Form, Item, Input, Label, Row, Col, Text, Button, Card, CardItem, Body, Badge } from 'native-base';
+import { Container, Header, Content, Form, Item, Input, Label, Row, Col, Text, Button, Card, CardItem, Body, Badge, Thumbnail } from 'native-base';
 import { PieChart } from "react-native-chart-kit";
 import { PanGestureHandler, ScrollView, TouchableHighlight, TouchableOpacity } from 'react-native-gesture-handler';
 import Theme from '../../../utils/Theme'
@@ -16,6 +16,7 @@ import BadgePresensi from '../components/BadgePresensi'
 import Geolocation from '@react-native-community/geolocation'
 import { geocodeLatLong, geofenceRadius } from '../../../utils/GeolocationHelper'
 import { simpleToast } from '../../../utils/DisplayHelper';
+
 
 
 export class HomeIndex extends Component {
@@ -38,6 +39,7 @@ export class HomeIndex extends Component {
         presensi: []
       },
       logoutModalVisible: false,
+      signoutModalVisible: false,
 
       blockBHeight: {
         initialY: h(100) * 0.4,
@@ -62,9 +64,12 @@ export class HomeIndex extends Component {
     this.test = this.test.bind(this)
     this.setLogoutModal = this.setLogoutModal.bind(this)
     this.testAnimate = this.testAnimate.bind(this)
+    this.setSignoutModal = this.setSignoutModal.bind(this)
   }
 
   componentDidMount = async () => {
+    // login
+
     this.getData()
     this.initValue()
     this.isFocus = this.props.navigation.addListener('focus', () => {
@@ -262,6 +267,10 @@ export class HomeIndex extends Component {
     this.setState({ logoutModalVisible: !this.state.logoutModalVisible })
   }
 
+  setSignoutModal = () => {
+    this.setState({ signoutModalVisible: !this.state.signoutModalVisible })
+  }
+
   testAnimate = () => {
     // this.blockBTop
     // Animated.timing(this.blockBTop, {
@@ -354,6 +363,93 @@ export class HomeIndex extends Component {
     return null
   }
 
+  renderModalLogout() {
+
+    let sourceAvatar = null
+    if (this.props.auth.profile.foto_profil) {
+      sourceAvatar = {
+        uri: `${ASSETS_URL}/users/foto_profil/${this.props.auth.profile.foto_profil}`
+      }
+    }
+
+    else {
+      sourceAvatar = require('../../../../assets/images/default-user.png')
+    }
+    return (
+
+      <Modal
+        testID={'modal'}
+        isVisible={this.state.signoutModalVisible}
+        onBackButtonPress={this.setSignoutModal}
+        backdropColor="rgba(0,0,0,.5)"
+        backdropOpacity={0.8}
+        animationIn="zoomInDown"
+        animationOut="zoomOutUp"
+        animationInTiming={400}
+        animationOutTiming={400}
+        backdropTransitionInTiming={400}
+        backdropTransitionOutTiming={600}
+        onBackdropPress={this.setSignoutModal}
+      >
+        <View
+          style={{
+            backgroundColor: 'white',
+            width: w(80),
+            borderRadius: fs(2),
+            // paddingHorizontal: fs(5),
+            marginLeft: w(5),
+            paddingVertical: fs(5),
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <Thumbnail large source={sourceAvatar} />
+          <View style={{ width: '100%' }}>
+            <TouchableOpacityRN
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <Icon name="cog" color="grey" size={fs(2.5)} />
+              <Text style={{ color: 'grey', paddingVertical: fs(1), paddingHorizontal: fs(2) }}>Setting</Text>
+            </TouchableOpacityRN>
+            <TouchableOpacityRN
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+              onPress={() => alert('press')}
+            >
+              <Icon name="user" color="grey" size={fs(2.5)} />
+              <Text style={{ color: 'grey', paddingVertical: fs(1), paddingHorizontal: fs(2) }}>Profil</Text>
+            </TouchableOpacityRN>
+
+            <TouchableOpacityRN
+              style={{
+                backgroundColor: 'red',
+                justifyContent: 'center',
+                marginHorizontal: fs(2),
+                marginTop: fs(2),
+                borderRadius: 5,
+                paddingVertical: fs(1.3)
+              }}
+              onPress={() => {
+                this.props.resetPresensi()
+                this.props.logout()
+              }}
+            >
+              <Text style={{ color: 'white', textAlign: 'center', width: '100%' }}>Logout</Text>
+            </TouchableOpacityRN>
+          </View>
+        </View>
+
+      </Modal >
+    )
+  }
+
 
 
   render() {
@@ -374,6 +470,7 @@ export class HomeIndex extends Component {
           }
         >
           {this.renderModal()}
+          {this.renderModalLogout()}
           <View>
 
             <ImageBackground
@@ -399,12 +496,9 @@ export class HomeIndex extends Component {
                 }}
               >
                 <TouchableOpacity
-                  onPress={() => {
-                    this.props.logout()
-                    this.props.resetPresensi()
-                  }}
+                  onPress={this.setSignoutModal}
                 >
-                  <Icon name="bars" color="white" size={fs(3)} style={{ alignSelf: 'center', height: '100%', paddingTop: fs(1.2) }} />
+                  <Icon name="ellipsis-v" color="white" size={fs(3)} style={{ alignSelf: 'center', height: '100%', paddingTop: fs(1.2) }} />
                 </TouchableOpacity>
 
               </View>
@@ -553,7 +647,6 @@ export class HomeIndex extends Component {
               rIf={auth.profile.face_status == 'Y' && !hasPresensi}
             />
 
-
             <BadgePresensi
               bgColor="white"
               bordered
@@ -574,8 +667,6 @@ export class HomeIndex extends Component {
               }}
               rIf={auth.profile.face_registered == "N" && auth.profile.face_status == 'N'}
             />
-
-
 
             <BadgePresensi
               bgColor={this.state.primary}
@@ -602,9 +693,6 @@ export class HomeIndex extends Component {
                         width={100}
                         height={100}
                         hasLegend={false}
-                        // width={screenWidth}
-                        // height={220}
-
                         chartConfig={{
                           backgroundGradientFrom: "#1E2923",
                           backgroundGradientFromOpacity: 0,
@@ -737,28 +825,6 @@ export class HomeIndex extends Component {
 
               ))}
             </Row>
-            {/* 
-            <View style={{ flexDirection: 'row' }}>
-
-              <TouchableHighlight
-                onPress={this.testAnimate}
-                style={{
-                  width: w(50),
-                  height: h(10)
-                }}
-              >
-              </TouchableHighlight>
-              <TouchableHighlight
-                onPress={() => {
-                  this.props.navigation.navigate('HomeRegisterFaceCamera')
-                }}
-                style={{
-                  width: w(50),
-                  height: h(10)
-                }}
-              >
-              </TouchableHighlight>
-            </View> */}
           </View>
         </Animated.ScrollView>
         {/* </PanGestureHandler> */}

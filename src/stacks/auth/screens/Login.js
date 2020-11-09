@@ -264,6 +264,8 @@ export class Login extends Component {
                 onChangeText={(e) => this.setInputValue('username', e)}
                 value={form.value.username}
                 placeholder="Email"
+                keyboardType="email-address"
+                clearButtonMode="always"
                 onFocus={() => this.setInputFocus('username', null)}
                 onEndEditing={() => {
                   this.setInputFocus(null)
