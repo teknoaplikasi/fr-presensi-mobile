@@ -70,23 +70,23 @@ export class HomeIndex extends Component {
   componentDidMount = async () => {
     // login
 
-    this.getData()
-    this.initValue()
+    // this.getData()
+    // this.initValue()
     this.isFocus = this.props.navigation.addListener('focus', () => {
       this.getData()
       this.initValue()
+      this.initChart()
       this.intervalCurrentTime = setInterval(() => {
         this.setState({
           currentTime: moment().format('HH:mm:ss')
         })
       }, 1000)
     })
-    this.initChart()
-    this.intervalCurrentTime = setInterval(() => {
-      this.setState({
-        currentTime: moment().format('HH:mm:ss')
-      })
-    }, 1000)
+    // this.intervalCurrentTime = setInterval(() => {
+    //   this.setState({
+    //     currentTime: moment().format('HH:mm:ss')
+    //   })
+    // }, 1000)
   }
 
   getData = async () => {

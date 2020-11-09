@@ -37,7 +37,7 @@ const dark = {
 // }
 
 const Theme = {
-  dark: dark,
+  dark: light,
   light: light,
   default: light
 }

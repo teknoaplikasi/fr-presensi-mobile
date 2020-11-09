@@ -69,7 +69,7 @@ export class HomeFacePresensiCamera extends Component {
 
   handleBackButton = () => {
     // simpleToast('back pressed')
-    if (this.state.mode == 'preview')
+    if (this.state.mode == 'preview' && this.state.registerStatus == null)
       return true
     else
       return false
@@ -193,11 +193,13 @@ export class HomeFacePresensiCamera extends Component {
       return this.setState({ registerStatus: faceId2.success, registerStatusMsg: 'Presensi gagal, tidak ada wajah terdeteksi' })
     }
     const faceIdStr = faceId2.result[0].faceId
-    console.log('face id 2', faceIdStr)
+    console.log('face id 2', face1, faceIdStr)
 
     let faceVerify = await AzureFaceAPI.verify(face1, faceIdStr)
+
+    console.log(JSON.stringify(faceVerify))
     if (!faceVerify.success) {
-      return this.setState({ registerStatus: faceVerify.success, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
+      return this.setState({ registerStatus: faceVerify.success, registerStatusMsg: faceVerify.error.error.message ? faceVerify.error.error.message : 'Presensi gagal. Coba beberapa saat lagi' })
 
     }
 

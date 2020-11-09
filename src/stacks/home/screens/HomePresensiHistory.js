@@ -27,8 +27,8 @@ class HomePresensiHistory extends Component {
 
   componentDidMount = async () => {
     // moment.locale('id')
-    this.initValue()
-    this.getData()
+    // this.initValue()
+    // this.getData()
 
     // this.getData()
     this.isFocus = this.props.navigation.addListener('focus', () => {
