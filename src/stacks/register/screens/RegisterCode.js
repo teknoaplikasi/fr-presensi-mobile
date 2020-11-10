@@ -105,7 +105,7 @@ export class RegisterCode extends Component {
       kode: this.state.value
     })
 
-    console.log('check', JSON.stringify(check))
+    // console.log('check', JSON.stringify(check))
 
     if (!check.success) {
       this.setState({ buttonLoading: false })
@@ -116,11 +116,11 @@ export class RegisterCode extends Component {
       return simpleToast('Perusahaan tidak ditemukan')
     }
 
-    console.log(JSON.stringify(check))
+    // console.log(JSON.stringify(check))
 
 
     this.props.navigation.navigate('RegisterFace', {
-      perusahaan_id: check.data[0].id
+      perusahaan_id: check.data.id
     })
     this.setState({ buttonLoading: false })
 

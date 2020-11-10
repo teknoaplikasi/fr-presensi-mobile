@@ -10,6 +10,7 @@ import { Form, Button } from 'native-base'
 import { ScrollView, TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler'
 import { simpleToast } from '../../../utils/DisplayHelper'
 import { CommonActions } from '@react-navigation/native'
+import Loading from '../../../components/Loading'
 
 
 export class RegisterFace extends Component {
@@ -225,7 +226,7 @@ export class RegisterFace extends Component {
 
     if (!isValid) return
 
-    let submit = await API.postDev('register', true, this.state.value)
+    let submit = await API.postDev('register', false, this.state.value)
     console.log(submit)
     if (!submit.success) {
       return simpleToast(submit.failureMessage)
@@ -254,6 +255,7 @@ export class RegisterFace extends Component {
           { bottom: this.avoidingView },
           styles.container]}
       >
+        <Loading rIf={false} />
         <TouchableWithoutFeedback
           onPress={() => {
             Keyboard.dismiss()

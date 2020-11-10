@@ -374,7 +374,7 @@ export class HomeIndex extends Component {
 
       <Modal
         testID={'modal'}
-        isVisible={this.state.signoutModalVisible}
+        isVisible={!this.state.signoutModalVisible}
         onBackButtonPress={this.setSignoutModal}
         backdropColor="rgba(0,0,0,.5)"
         backdropOpacity={0.8}
@@ -406,17 +406,11 @@ export class HomeIndex extends Component {
                 justifyContent: 'center',
                 alignItems: 'center'
               }}
-            >
-              <Icon name="cog" color="grey" size={fs(2.5)} />
-              <Text style={{ color: 'grey', paddingVertical: fs(1), paddingHorizontal: fs(2) }}>Setting</Text>
-            </TouchableOpacityRN>
-            <TouchableOpacityRN
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center'
+              onPress={() => {
+                alert('profile page coming soom')
+                // this.setSignoutModal()
+                // this.props.navigation.navigate('HomeProfile')
               }}
-              onPress={() => alert('press')}
             >
               <Icon name="user" color="grey" size={fs(2.5)} />
               <Text style={{ color: 'grey', paddingVertical: fs(1), paddingHorizontal: fs(2) }}>Profil</Text>

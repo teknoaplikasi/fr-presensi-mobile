@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import HomePresensiHistory from './screens/HomePresensiHistory'
 import HomeFacePresensiCamera from './screens/HomeFacePresensiCamera'
 import RegisterFaceCamera from '../register/screens/RegisterFaceCamera'
+import HomeProfile from '../home/screens/HomeProfile'
 
 const Stack = createStackNavigator()
 function HomeRouter(props) {
@@ -41,6 +42,14 @@ function HomeRouter(props) {
           headerShown: false
         }}
       />
+      <Stack.Screen
+        name="HomeProfile"
+        component={HomeProfile}
+        options={{
+          title: 'Edit Profil',
+          headerShown: true,
+        }}
+      />
 
       <Stack.Screen
         name="HomeFaceRecognition"
@@ -63,7 +72,8 @@ function HomeRouter(props) {
         component={HomePresensiHistory}
         options={{
           headerShown: true,
-          title: 'Riwayat Presensi Bulan Ini'
+          title: 'Presensi Bulan Ini'
+
         }}
       />
       <Stack.Screen
