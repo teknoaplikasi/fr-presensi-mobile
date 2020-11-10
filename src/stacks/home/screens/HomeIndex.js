@@ -107,6 +107,7 @@ export class HomeIndex extends Component {
 
   getData = async () => {
     const faceStatus = await API.getDev('ValidateFace', true, { user_id: this.props.auth.profile.id })
+    console.log(JSON.stringify(faceStatus))
     const announcement = await API.getDev('list/pengumuman', true, { aktif: 'Y' })
     const presensiConfig = await API.getDev('ConfigPresensi', true, { perusahaan_id: this.props.auth.profile.perusahaan_id, user_id: this.props.auth.profile.id })
     console.log('presensiConfig', JSON.stringify(presensiConfig))
@@ -374,7 +375,7 @@ export class HomeIndex extends Component {
 
       <Modal
         testID={'modal'}
-        isVisible={!this.state.signoutModalVisible}
+        isVisible={this.state.signoutModalVisible}
         onBackButtonPress={this.setSignoutModal}
         backdropColor="rgba(0,0,0,.5)"
         backdropOpacity={0.8}
