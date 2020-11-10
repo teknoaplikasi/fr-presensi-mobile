@@ -225,7 +225,6 @@ export class RegisterFace extends Component {
 
     if (!isValid) return
 
-    console.log('isvalid', isValid)
     let submit = await API.postDev('register', true, this.state.value)
     console.log(submit)
     if (!submit.success) {

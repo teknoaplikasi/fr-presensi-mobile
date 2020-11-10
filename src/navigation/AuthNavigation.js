@@ -76,7 +76,8 @@ function AuthNavigation() {
           name="RegisterFace"
           component={RegisterFace}
           options={{
-            headerShown: false
+            headerShown: false,
+            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
           }}
         />
       </Stack.Navigator>

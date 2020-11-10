@@ -12,6 +12,7 @@ import Icon from 'react-native-vector-icons/FontAwesome5'
 import { connect } from 'react-redux';
 import moment from 'moment'
 import BadgePresensi from '../components/BadgePresensi'
+import { ASSETS_URL } from '../../../../config'
 
 import Geolocation from '@react-native-community/geolocation'
 import { geocodeLatLong, geofenceRadius, shortestDistance } from '../../../utils/GeolocationHelper'
@@ -72,9 +73,9 @@ export class HomeIndex extends Component {
 
   componentDidMount = async () => {
     // login
-    // this.getData()
-    // this.initValue()
-    // this.initChart()
+    this.getData()
+    this.initValue()
+    this.initChart()
     this.isFocus = this.props.navigation.addListener('focus', () => {
       this.getData()
       this.initValue()
@@ -95,10 +96,10 @@ export class HomeIndex extends Component {
   testValidasi = async () => {
     // simpleToast(JSON.stringify(this.state.location))
     const check = await shortestDistance(this.state.location, this.props.presensi.presensi_conf)
+    console.log('check', check)
 
     this.setState({
       presensiProhibited: check.presensiProhibited,
-      // presensiProhibited: true,
       presensiRadius: check.shortestDistance.radius,
     })
 
@@ -107,12 +108,8 @@ export class HomeIndex extends Component {
   getData = async () => {
     const faceStatus = await API.getDev('ValidateFace', true, { user_id: this.props.auth.profile.id })
     const announcement = await API.getDev('list/pengumuman', true, { aktif: 'Y' })
-    const presensiConfig = await API.getDev('ConfigPresensi', true, { id: this.props.auth.profile.perusahaan_id })
-    // simpleToast(JSON.stringify(presensiConfig))
-
-    //dispatch presensi config
-    // simpleToast(typeof (presensiConfig.data))
-    console.log(presensiConfig)
+    const presensiConfig = await API.getDev('ConfigPresensi', true, { perusahaan_id: this.props.auth.profile.perusahaan_id, user_id: this.props.auth.profile.id })
+    console.log('presensiConfig', JSON.stringify(presensiConfig))
     if (!presensiConfig.success)
       simpleToast("Gagal mengambil data konfigurasi presensi")
     else
@@ -235,9 +232,6 @@ export class HomeIndex extends Component {
   onBlockBPanned = (event) => {
     const { initialY } = this.state.blockBHeight
     const transY = event.nativeEvent.translationY
-    console.log('value', initialY + transY)
-
-
     let value = h(40)
     if (initialY + transY < h(40))
       value = initialY + transY
@@ -258,12 +252,7 @@ export class HomeIndex extends Component {
     if (event.nativeEvent.state == 5) {
       const initialY = this.blockBTop
       const transY = event.nativeEvent.translationY
-      const absoluteY = event.nativeEvent.absoluteY
-
       let value = initialY + transY > h(40) ? h(40) : initialY + transY
-      const calculated = value / h(40)
-
-
       this.setState(prevState => ({
         blockBHeight: {
           ...prevState.blockBHeight,
@@ -292,19 +281,12 @@ export class HomeIndex extends Component {
     this.setState({ signoutModalVisible: !this.state.signoutModalVisible })
   }
 
-  testAnimate = () => {
-    // this.blockBTop
-    // Animated.timing(this.blockBTop, {
-    //   duration: 200,
-    //   toValue: h(10)
-    // }).start()
-  }
+  testAnimate = () => { }
 
   renderModal() {
     const durasiKerja = `${parseInt(moment(`${this.props.presensi.last_presensi.tanggal} ${this.props.presensi.last_presensi.jam}`).format('H')) - parseInt(moment().format('H'))} jam`
 
     const { home, hideLogoutAlert } = this.props
-    const { blockBHeight, blockA, mode, scheme, logoutModalVisible } = this.state
     const primaryText = '#705499'
     const buttonColor = '#6200ee'
     return (
@@ -322,23 +304,13 @@ export class HomeIndex extends Component {
         backdropTransitionOutTiming={600}
       >
         <View
-          style={{
-            backgroundColor: 'white',
-            width: w(90),
-            borderRadius: fs(2),
-            paddingHorizontal: fs(5),
-            paddingVertical: fs(5),
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
+          style={styles.modalPresensiOutWrapper}
         >
           <Icon name="stopwatch" color="green" size={fs(5)} />
           <Text style={{ fontWeight: 'bold', color: primaryText }}>Presensi Masuk {this.props.presensi.last_presensi.jam} WIB</Text>
           <Text style={{ color: primaryText, fontSize: fs(1.5), textAlign: 'center' }}>di {this.props.presensi.last_presensi.lokasi}</Text>
 
-          <Badge warning
-            style={{ alignSelf: 'center', marginBottom: fs(4), marginTop: fs(2) }}
-          >
+          <Badge warning style={{ alignSelf: 'center', marginBottom: fs(4), marginTop: fs(2) }}>
             <Text>Durasi {durasiKerja}</Text>
           </Badge>
           <Text style={{ color: primaryText, fontWeight: 'bold', fontSize: fs(1.7), textAlign: 'center' }}>Anda akan melakukan presensi keluar, apakah anda yakin?</Text>
@@ -366,7 +338,9 @@ export class HomeIndex extends Component {
               }}
               onPress={() => {
                 this.props.navigation.navigate('HomeFacePresensiCamera', {
-                  flag: this.state.isPresensiIn ? 'I' : 'O'
+                  flag: this.state.isPresensiIn ? 'I' : 'O',
+                  presensiProhibited: this.state.presensiProhibited,
+                  radius: this.state.presensiRadius
                 })
                 hideLogoutAlert()
 
@@ -495,44 +469,15 @@ export class HomeIndex extends Component {
           <View>
 
             <ImageBackground
-              style={{
-                position: 'relative',
-                height: h(50),
-                width: w(100),
-                justifyContent: 'center'
-              }}
+              style={styles.bgImageTop}
               source={require('../../../../assets/images/home-bg-light.png')}
             >
-
-              <View
-                style={{
-                  position: 'absolute',
-                  // zIndex: 999,
-                  width: 40,
-                  top: 0,
-                  right: 0,
-                  height: 50,
-                  justifyContent: 'center',
-
-                }}
-              >
-                <TouchableOpacity
-                  onPress={this.setSignoutModal}
-                >
-                  <Icon name="ellipsis-v" color="white" size={fs(3)} style={{ alignSelf: 'center', height: '100%', paddingTop: fs(1.2) }} />
+              <View style={styles.bgImageTopInner}>
+                <TouchableOpacity onPress={this.setSignoutModal}>
+                  <Icon name="ellipsis-v" color="white" size={fs(3)} style={styles.bgImageTopIcon} />
                 </TouchableOpacity>
 
               </View>
-              {/* <View
-                  style={{
-                    width: w(40),
-                    height: h(20),
-                    position: 'absolute',
-                    backgroundColor: 'yellow'
-                  }}
-                >
-
-                </View> */}
               <Animated.View
                 style={[
                   {
@@ -610,58 +555,16 @@ export class HomeIndex extends Component {
 
             </ImageBackground>
           </View>
-          {/* <PanGestureHandler
-          onGestureEvent={this.onBlockBPanned}
-          onHandlerStateChange={this.onChangeStateBlockB}
-        > */}
-          {/* <Animated.ScrollView
-          style={[
-            // blockBTopStyle,
-            {
-              position: 'absolute',
-              width: w(100),
-              backgroundColor: scheme.primaryBg,
-              top: h(40),
-              // top: blockBHeight.value,
-              // top: h(40),
-
-              borderTopRightRadius: 30,
-              borderTopLeftRadius: 30,
-              paddingHorizontal: fs(2.5),
-              paddingVertical: fs(5),
-              zIndex: 99999,
-              // backgroundColor: 'blue',
-              // transform: [
-              //   { translateY: 100 }
-              // ]
-            }]}
-          contentContainerStyle={{
-            // flexGrow: 1,
-            height: h(200),
-            // flex: 1
-          }}
-
-          scrollEventThrottle={1}
-          stickyHeaderIndices={[1]}
-        > */}
-          <View
-            style={{
-              top: fs(-10),
-              backgroundColor: 'white',
-              paddingTop: fs(2),
-              paddingHorizontal: fs(2),
-              borderTopRightRadius: fs(2),
-              borderTopLeftRadius: fs(2)
-            }}
-          >
-
+          <View style={styles.contentWrapper}>
             <BadgePresensi
               bgColor={this.state.secondary}
               textColor="white"
               button="PRESENSI"
               onPress={() => {
                 this.props.navigation.navigate('HomeFacePresensiCamera', {
-                  flag: 'I'
+                  flag: 'I',
+                  presensiProhibited: this.state.presensiProhibited,
+                  radius: this.state.presensiRadius
                 })
               }}
               text="Anda belum melakukan presensi hari ini"
@@ -703,7 +606,6 @@ export class HomeIndex extends Component {
               }}
               rIf={auth.profile.face_status == 'W'}
             />
-            {this.renderRegisterLink()}
             <Row style={{ backgroundColor: scheme.primaryBg, marginVertical: fs(2), height: 'auto' }}>
               <Col size={6}>
                 <Card style={{ borderRadius: fs(1), overflow: 'hidden', }}>
@@ -755,14 +657,6 @@ export class HomeIndex extends Component {
                     </Body>
                   </CardItem>
                 </Card>
-
-                {/* <View
-                  style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'blue'
-                  }}
-                /> */}
               </Col>
               <Col size={6}>
                 <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
@@ -773,9 +667,6 @@ export class HomeIndex extends Component {
                         width={100}
                         height={100}
                         hasLegend={false}
-                        // width={screenWidth}
-                        // height={220}
-
                         chartConfig={{
                           backgroundGradientFrom: "#1E2923",
                           backgroundGradientFromOpacity: 0,
@@ -873,6 +764,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%'
+  },
+
+  bgImageTop: {
+    position: 'relative',
+    height: h(50),
+    width: w(100),
+    justifyContent: 'center'
+  },
+
+  bgImageTopInner: {
+    position: 'absolute',
+    width: 40,
+    top: 0,
+    right: 0,
+    height: 50,
+    justifyContent: 'center',
+  },
+
+  bgImageTopIcon: { alignSelf: 'center', height: '100%', paddingTop: fs(1.2) },
+
+  modalPresensiOutWrapper: {
+    backgroundColor: 'white',
+    width: w(90),
+    borderRadius: fs(2),
+    paddingHorizontal: fs(5),
+    paddingVertical: fs(5),
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+
+  contentWrapper: {
+    top: fs(-10),
+    backgroundColor: 'white',
+    paddingTop: fs(2),
+    paddingHorizontal: fs(2),
+    borderTopRightRadius: fs(2),
+    borderTopLeftRadius: fs(2)
   }
 })
 

@@ -1,10 +1,9 @@
 import React, { Component } from 'react'
-import { StyleSheet, Image, View, StatusBar, ImageBackground, Keyboard, Animated, TextInput, BackHandler, KeyboardAvoidingView, ToastAndroid, ActivityIndicator } from 'react-native'
+import { StyleSheet, Image, View, StatusBar, ImageBackground, Keyboard, Animated, TextInput, ToastAndroid } from 'react-native'
 import { responsiveWidth as w, responsiveFontSize as fs, responsiveHeight as h } from 'react-native-responsive-dimensions'
-import { Container, Header, Content, Form, Item, Input, Label, Row, Col, Text, Button } from 'native-base';
-import { ScrollView, TouchableHighlight, TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { Row, Col, Text, Button } from 'native-base';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { API } from '../../../utils/Api'
-import { decodeJWT } from '../../../utils/AuthHelper';
 import { connect } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome5'
 import { simpleToast } from '../../../utils/DisplayHelper';
@@ -38,21 +37,13 @@ export class Login extends Component {
     this.onUserLogin = this.onUserLogin.bind(this)
     this.setSecureTextEntry = this.setSecureTextEntry.bind(this)
     this.validateField = this.validateField.bind(this)
-
     this.avoidingView = new Animated.Value(0)
   }
 
   initValue = async () => {
     this.keyboardWillShowSub = Keyboard.addListener('keyboardWillShow', this.keyboardWillShow)
-
-    this.keyboardWillHideSub = Keyboard.addListener('keyboardWillHide', this.keyboardWillHide);
-
-    this.keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', async () => {
-      await this.keyboardWillHide()
-    })
-
-    // StatusBar.setBackgroundColor('transparent')
-    // StatusBar.setBarStyle('light-content')
+    this.keyboardWillHideSub = Keyboard.addListener('keyboardWillHide', this.keyboardWillHide)
+    this.keyboardDidHideSub = Keyboard.addListener('keyboardDidHide', async () => { await this.keyboardWillHide() })
   }
 
   componentDidMount = () => {
@@ -61,15 +52,13 @@ export class Login extends Component {
     this.isFocus = this.props.navigation.addListener('focus', () => {
       this.initValue()
     })
-
   }
-
 
   componentWillUnmount() {
     this.isFocus()
-    this.keyboardWillShowSub.remove();
-    this.keyboardWillHideSub.remove();
-    this.keyboardDidHideListener.remove();
+    this.keyboardWillShowSub.remove()
+    this.keyboardWillHideSub.remove()
+    this.keyboardDidHideSub.remove()
   }
 
 
@@ -81,7 +70,6 @@ export class Login extends Component {
   };
 
   keyboardWillHide = () => {
-    console.log('keyboardWillHide')
     Animated.timing(this.avoidingView, {
       duration: 200,
       toValue: 0,
@@ -139,7 +127,6 @@ export class Login extends Component {
   }
 
   onUserLogin = async () => {
-
     this.setState(prevState => ({
       form: {
         ...prevState.form,
@@ -157,7 +144,7 @@ export class Login extends Component {
     let login = await API.getDev('login', false, this.state.form.value)
     if (!login.success) {
       this.setState({ login: false })
-      return this.presentToast(login.failureMessage)
+      return simpleToast(login.failureMessage)
     }
     await this.props.setToken(login.JWT)
 
@@ -204,15 +191,6 @@ export class Login extends Component {
 
   }
 
-
-  presentToast = (message) => {
-    return ToastAndroid.showWithGravity(
-      message,
-      ToastAndroid.SHORT,
-      ToastAndroid.BOTTOM
-    )
-  }
-
   render() {
     const { form } = this.state
     return (
@@ -229,14 +207,15 @@ export class Login extends Component {
           }}
         >
           <View style={{
-            position: 'relative'
+            position: 'relative',
           }}>
             <ImageBackground
               source={require('../../../../assets/images/home-bg-light.png')}
               style={{
                 width: w(100),
-                height: h(45),
-                backgroundColor: '#ffac1f'
+                height: h(40),
+                backgroundColor: '#ffac1f',
+                position: 'relative'
               }}
             >
             </ImageBackground>
@@ -361,7 +340,7 @@ const styles = StyleSheet.create({
     paddingVertical: fs(3),
     flex: 1,
     backgroundColor: 'white',
-    height: h(100),
+    // height: h(100),
   },
 
   formGroup: {

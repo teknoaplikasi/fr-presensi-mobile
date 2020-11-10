@@ -10,6 +10,7 @@ import { responsiveWidth as w, responsiveFontSize as fs } from 'react-native-res
 import Theme from '../utils/Theme'
 import { connect } from 'react-redux'
 import moment from 'moment'
+import { shortestDistance } from '../utils/GeolocationHelper'
 
 const qrIcon = require('../../assets/images/qr-icon.png')
 const logoutIcon = require('../../assets/images/logout-icon.png')

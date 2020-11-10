@@ -3,17 +3,13 @@ import { Text, View, StyleSheet, ImageBackground, ToastAndroid, StatusBar, Activ
 import { Button } from 'native-base'
 import { RNCamera } from 'react-native-camera'
 import { TouchableOpacity } from 'react-native-gesture-handler'
-
 import { responsiveWidth as w, responsiveHeight as h, responsiveFontSize as fs } from 'react-native-responsive-dimensions'
 import { API } from '../../../utils/Api'
 import Icon from 'react-native-vector-icons/FontAwesome5'
-import { useHeaderHeight } from '@react-navigation/stack'
 import { AzureFaceAPI } from '../../../utils/Azure'
-import { AZURE_BASE_URL, AZURE_KEY } from '../../../../config'
-import RNFS from 'react-native-fs'
 import Chip from '../../../components/Chip'
 import Geolocation from '@react-native-community/geolocation'
-import { geocodeLatLong, geofenceRadius } from '../../../utils/GeolocationHelper'
+import { geocodeLatLong, shortestDistance } from '../../../utils/GeolocationHelper'
 import { simpleToast } from '../../../utils/DisplayHelper'
 import { connect } from 'react-redux'
 import Sound from 'react-native-sound'
@@ -34,7 +30,10 @@ export class HomeFacePresensiCamera extends Component {
         longitude: null,
         detail: ''
       },
-      alertLocation: false
+      alertLocation: false,
+      companyLocation: {
+        id: null
+      }
     }
 
     this.takePicture = this.takePicture.bind(this)
@@ -46,14 +45,11 @@ export class HomeFacePresensiCamera extends Component {
   }
 
   componentDidMount = () => {
-    // this.initValue()
-    // this.getCurrentLocation()
     this.initValue()
     this.getCurrentLocation()
     BackHandler.addEventListener('hardwareBackPress', this.handleBackButton)
 
     this.isFocus = this.props.navigation.addListener('focus', () => {
-      // this.camera.
       this.initValue()
       this.getCurrentLocation()
     })
@@ -62,13 +58,9 @@ export class HomeFacePresensiCamera extends Component {
   initValue = async () => {
     StatusBar.setBackgroundColor('#ffac1f')
     StatusBar.setBarStyle('light-content')
-
-
-    // StatusBar.setHidden(true)
   }
 
   handleBackButton = () => {
-    // simpleToast('back pressed')
     if (this.state.mode == 'preview' && this.state.registerStatus == null)
       return true
     else
@@ -76,24 +68,15 @@ export class HomeFacePresensiCamera extends Component {
   }
 
   getCurrentLocation = async () => {
-    // Geolocation.getCurrentPosition((position, err) => {
-    //   if (err) {
-    //     console.log('err', err)
-    //   }
-    //   console.log('position', position)
-    // })
-
     Geolocation.getCurrentPosition(async ({ coords }) => {
-      console.log('watch', coords)
-      // if (!position.coords.latitude || !position.coords.longitude) return
-      await this.setState(prevState => ({
+      this.setState(prevState => ({
         location: {
           ...prevState.location,
           latitude: coords.latitude,
           longitude: coords.longitude
         }
-      }))
-      this.validateLocation()
+      }), () =>
+        this.validateLocation())
     })
   }
 
@@ -104,44 +87,38 @@ export class HomeFacePresensiCamera extends Component {
   }
 
   validateLocation = async () => {
-    // const { latitude, longitude } = this.state
-    // console.log('test')
     if (!this.props.auth.company.latitude || !this.props.auth.company.longitude) {
       return simpleToast('Lokasi perusahaan belum diatur. Hubungi admin')
     }
-
-    const companyCoord = {
-      latitude: parseFloat(this.props.auth.company.latitude),
-      longitude: parseFloat(this.props.auth.company.longitude)
-    }
-
     const deviceCoord = {
       latitude: this.state.location.latitude,
       longitude: this.state.location.longitude
     }
 
-    console.log(deviceCoord)
-    const isValid = await geofenceRadius(companyCoord, deviceCoord, parseInt(this.props.auth.company.radius))
-
-    console.log('isvalid', isValid)
-    // validate device coord
+    console.log(this.props.presensi.presensi_conf)
+    const check = await shortestDistance(deviceCoord, this.props.presensi.presensi_conf)
+    const isValid = !check.presensiProhibited
     if (!isValid) {
-      return this.setState({
-        alertLocation: true
+      this.setState({
+        alertLocation: true,
+        companyLocation: check.shortestDistance
+      })
+    }
+
+    else {
+      this.setState({
+        alertLocation: false,
+        companyLocation: check.shortestDistance
       })
     }
 
     const locationDetail = await geocodeLatLong(this.state.location.latitude, this.state.location.longitude)
-
-    // return simpleToast(JSON.stringify(locationDetail))
     this.setState(prevState => ({
       location: {
         ...prevState.location,
         detail: locationDetail.result
       }
     }))
-
-    console.log('after update', this.state.location)
   }
 
   takePicture = async () => {
@@ -151,7 +128,6 @@ export class HomeFacePresensiCamera extends Component {
       this.setState({ image: data }, () => {
         this.faceRecognize()
       })
-
     }
   }
 
@@ -159,14 +135,7 @@ export class HomeFacePresensiCamera extends Component {
     let upload = await AzureFaceAPI.detect(this.state.image.uri)
     this.setState({ registerStatus: upload.success })
 
-    if (upload.success) {
-      // return this.presentToast(JSON.stringify(upload.result))
-      console.log(upload.result)
-    }
-
-    else {
-      // return this.presentToast('Failed')
-      // console.log(JSON.stringify(upload))
+    if (!upload.success) {
       return this.presentToast(upload.error.error_message)
     }
   }
@@ -184,7 +153,6 @@ export class HomeFacePresensiCamera extends Component {
       return this.setState({ registerStatus: false, registerStatusMsg: 'Presensi gagal. Silahkan hubungi admin' })
     }
     let faceId2 = await AzureFaceAPI.detect(this.state.image.uri)
-    // this.setState({ registerStatus: faceId2.success, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
 
     if (!faceId2.success)
       return this.setState({ registerStatus: faceId2.success, registerStatusMsg: 'Presensi gagal. Coba beberapa saat lagi' })
@@ -193,21 +161,14 @@ export class HomeFacePresensiCamera extends Component {
       return this.setState({ registerStatus: faceId2.success, registerStatusMsg: 'Presensi gagal, tidak ada wajah terdeteksi' })
     }
     const faceIdStr = faceId2.result[0].faceId
-    console.log('face id 2', face1, faceIdStr)
-
     let faceVerify = await AzureFaceAPI.verify(face1, faceIdStr)
-
-    console.log(JSON.stringify(faceVerify))
     if (!faceVerify.success) {
       return this.setState({ registerStatus: faceVerify.success, registerStatusMsg: faceVerify.error.error.message ? faceVerify.error.error.message : 'Presensi gagal. Coba beberapa saat lagi' })
-
     }
 
     //success
-    // console.log(faceVerify)
     if (!faceVerify.result.valid) {
       return this.setState({ registerStatus: faceVerify.result.valid, registerStatusMsg: 'Presensi gagal. Face ID tidak terdaftar' })
-      // return simpleToast('Wajah Tidak Valid!')
     }
 
     const payload = {
@@ -217,14 +178,11 @@ export class HomeFacePresensiCamera extends Component {
       latitude: this.state.location.latitude,
       longitude: this.state.location.longitude,
       flag: this.props.route.params.flag,
-      // flag: 'O',
+      lokasi_id: this.state.companyLocation.id,
       lokasi: this.state.location.detail
     }
 
-    console.log('presensi payload', payload)
-
     let submit = await API.postDev('add/kehadiran', true, payload)
-    console.log('presensi resp', submit)
     if (!submit.success) {
       return this.setState({
         registerStatus: submit.success,
@@ -236,13 +194,9 @@ export class HomeFacePresensiCamera extends Component {
       registerStatus: true,
       registerStatusMsg: 'Presensi Berhasil'
     })
-    // simpleToast('Wajah anda valid')
     this.props.setLastPresensi(payload)
     await this.sleep(2000)
     this.props.navigation.pop()
-
-
-    // alert(JSON.stringify(payload))
   }
 
   sleep = (ms) => {
@@ -263,10 +217,11 @@ export class HomeFacePresensiCamera extends Component {
     return (
       <Modal
         testID={'modal'}
-        isVisible={!this.props.route.params.presensiProhibited}
+        isVisible={this.state.alertLocation}
         onBackButtonPress={() => {
-          this.props.route.params.presensiProhibited = false
-          this.props.navigation.pop()
+          this.setState({ alertLocation: false }, () => {
+            this.props.navigation.pop()
+          })
         }}
         backdropColor="rgba(0,0,0,.5)"
         backdropOpacity={0.8}
@@ -302,35 +257,12 @@ export class HomeFacePresensiCamera extends Component {
             }}
           >
             <Text style={{ fontWeight: 'bold', fontSize: fs(2.8), textAlign: 'center' }}>Presensi Ditolak</Text>
-            <Text style={{ marginTop: fs(2), fontSize: fs(1.7), textAlign: 'center' }}>Presensi hanya dapat dilakukan radius {this.props.route.params.radius} meter dari lokasi perusahaan. Pastikan blabla dan coba lagi</Text>
+            <Text style={{ marginTop: fs(2), fontSize: fs(1.7), textAlign: 'center' }}>Presensi hanya dapat dilakukan radius {this.state.radius} meter dari lokasi perusahaan. Pastikan blabla dan coba lagi</Text>
             <View style={{
               paddingTop: fs(5),
               flexDirection: 'column',
-              // justifyContent: '',
               width: '100%',
             }}>
-
-              {/* <Button
-                style={{
-                  backgroundColor: buttonColor,
-                  width: '100%',
-                  justifyContent: 'center',
-                  borderRadius: 5
-                }}
-
-                onPress={() => {
-                  this.setState({
-                    alertLocation: !this.state.alertLocation,
-                    mode: 'preview',
-                    image: null,
-                    // alertLocation: 
-                  }, () => {
-                    this.getCurrentLocation()
-                  })
-                }}
-              >
-                <Text style={{ color: 'white' }}>Ulangi</Text>
-              </Button> */}
               <Button
                 style={{
                   backgroundColor: '#fafafa',
@@ -534,7 +466,7 @@ export class HomeFacePresensiCamera extends Component {
               </View>}
 
 
-              {this.props.route.params.presensiProhibited ? null : this.renderModal()}
+              {this.state.alertLocation ? this.renderModal() : null}
               {this.state.registerStatus &&
                 <View
                   style={{

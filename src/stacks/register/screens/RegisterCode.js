@@ -105,7 +105,10 @@ export class RegisterCode extends Component {
       kode: this.state.value
     })
 
+    console.log('check', JSON.stringify(check))
+
     if (!check.success) {
+      this.setState({ buttonLoading: false })
       return simpleToast('Perusahaan tidak ditemukan')
     }
 
