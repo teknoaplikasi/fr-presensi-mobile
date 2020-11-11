@@ -15,8 +15,10 @@ import BadgePresensi from '../components/BadgePresensi'
 import { ASSETS_URL } from '../../../../config'
 
 import Geolocation from '@react-native-community/geolocation'
-import { geocodeLatLong, geofenceRadius, shortestDistance } from '../../../utils/GeolocationHelper'
+import { currentDeviceLocation, geocodeLatLong, geofenceRadius, shortestDistance } from '../../../utils/GeolocationHelper'
 import { simpleToast } from '../../../utils/DisplayHelper';
+import { checkAllPermission } from '../../../utils/Permissions';
+import LocationNotAvailable from '../../../components/LocationNotAvailable';
 
 
 
@@ -27,6 +29,7 @@ export class HomeIndex extends Component {
     this.state = {
       //move theme later
       location: null,
+      locationServiceAlert: null,
       refreshing: true,
       isPresensiIn: null,
       scheme: {},
@@ -72,10 +75,13 @@ export class HomeIndex extends Component {
   }
 
   componentDidMount = async () => {
-    // login
+
+    // checkAllPermission()
+
     this.getData()
     this.initValue()
     this.initChart()
+    // login
     this.isFocus = this.props.navigation.addListener('focus', () => {
       this.getData()
       this.initValue()
@@ -107,7 +113,9 @@ export class HomeIndex extends Component {
 
   getData = async () => {
     const faceStatus = await API.getDev('ValidateFace', true, { user_id: this.props.auth.profile.id })
-    console.log(JSON.stringify(faceStatus))
+    // console.log(JSON.stringify(faceStatus))
+
+
     const announcement = await API.getDev('list/pengumuman', true, { aktif: 'Y' })
     const presensiConfig = await API.getDev('ConfigPresensi', true, { perusahaan_id: this.props.auth.profile.perusahaan_id, user_id: this.props.auth.profile.id })
     console.log('presensiConfig', JSON.stringify(presensiConfig))
@@ -130,22 +138,41 @@ export class HomeIndex extends Component {
       face_status: faceStatus.data.face
     })
 
-    Geolocation.getCurrentPosition(async ({ coords }) => {
-      let locationDetail = await geocodeLatLong(coords.latitude, coords.longitude)
-      if (!locationDetail.success) {
+    this.props.setPresensiPermission(faceStatus.data.face == 'Y')
 
-        this.setState({ refreshing: false })
-        return simpleToast('Gagal mendapatkan lokasi anda')
-      }
-      coords.detail = locationDetail.result
-      this.setState({
-        refreshing: false,
-        location: coords
-      }, () => {
+    // Geolocation.getCurrentPosition(async ({ coords }) => {
+    //   let locationDetail = await geocodeLatLong(coords.latitude, coords.longitude)
+    //   if (!locationDetail.success) {
 
-        this.testValidasi()
+    //     this.setState({ refreshing: false })
+    //     return simpleToast('Gagal mendapatkan lokasi anda')
+    //   }
+    //   coords.detail = locationDetail.result
+    //   this.setState({
+    //     refreshing: false,
+    //     location: coords
+    //   }, () => {
+
+    //     this.testValidasi()
+    //   })
+    // }, (err) => { console.log('error', err) })
+    currentDeviceLocation()
+      .then((res) => {
+        console.log('res', res)
+        this.setState({
+          locationServiceAlert: false,
+          refreshing: false,
+          location: res.coordinates
+        }, () => this.testValidasi())
       })
-    })
+      .catch((err) => {
+        console.log('err', err)
+        this.setState({
+          refreshing: false,
+          locationServiceAlert: true,
+          location: { detail: err.errorMessage }
+        })
+      })
   }
 
   componentWillUnmount() {
@@ -184,6 +211,21 @@ export class HomeIndex extends Component {
       mode: 'light',
       isPresensiIn: isPresensiIn
     })
+
+
+    if (this.props.auth.profile.foto_profil) {
+      this.setState({
+        sourceAvatar: {
+          uri: `${ASSETS_URL}/users/foto_profil/${this.props.auth.profile.foto_profil}`
+        }
+      })
+    }
+
+    else {
+      this.setState({
+        sourceAvatar: require('../../../../assets/images/default-user.png')
+      })
+    }
   }
 
   initChart = () => {
@@ -297,8 +339,6 @@ export class HomeIndex extends Component {
         onBackButtonPress={this.setLogoutModal}
         backdropColor="rgba(0,0,0,.5)"
         backdropOpacity={0.8}
-        animationIn="zoomInDown"
-        animationOut="zoomOutUp"
         animationInTiming={400}
         animationOutTiming={400}
         backdropTransitionInTiming={400}
@@ -361,16 +401,8 @@ export class HomeIndex extends Component {
 
   renderModalLogout() {
 
-    let sourceAvatar = null
-    if (this.props.auth.profile.foto_profil) {
-      sourceAvatar = {
-        uri: `${ASSETS_URL}/users/foto_profil/${this.props.auth.profile.foto_profil}`
-      }
-    }
+    let sourceAvatar = this.state.sourceAvatar
 
-    else {
-      sourceAvatar = require('../../../../assets/images/default-user.png')
-    }
     return (
 
       <Modal
@@ -379,9 +411,9 @@ export class HomeIndex extends Component {
         onBackButtonPress={this.setSignoutModal}
         backdropColor="rgba(0,0,0,.5)"
         backdropOpacity={0.8}
-        animationIn="zoomInDown"
-        animationOut="zoomOutUp"
         animationInTiming={400}
+        animationIn="fadeIn"
+        animationOut="fadeOut"
         animationOutTiming={400}
         backdropTransitionInTiming={400}
         backdropTransitionOutTiming={600}
@@ -443,299 +475,304 @@ export class HomeIndex extends Component {
 
 
   render() {
-    const { mode, scheme, blockA } = this.state
+    const { mode, scheme, blockA, locationServiceAlert } = this.state
     const { auth, presensi } = this.props
     const hasPresensi = this.props.presensi.last_presensi.tanggal && this.props.presensi.last_presensi.tanggal == moment().format('YYYY-MM-DD')
     return (
-      <Container>
-        <Animated.ScrollView
-          refreshControl={
-            <RefreshControl
-              refreshing={this.state.refreshing}
-              onRefresh={() => {
-                this.setState({ refreshing: true })
-                this.getData()
-              }}
-            />
-          }
-        >
-          {this.renderModal()}
-          {this.renderModalLogout()}
-          <View>
+      <React.Fragment>
+        <LocationNotAvailable
+          rIf={locationServiceAlert}
+        />
+        <Container>
+          <Animated.ScrollView
+            refreshControl={
+              <RefreshControl
+                refreshing={this.state.refreshing}
+                onRefresh={() => {
+                  this.setState({ refreshing: true })
+                  this.getData()
+                }}
+              />
+            }
+          >
+            {this.renderModal()}
+            {this.renderModalLogout()}
+            <View>
 
-            <ImageBackground
-              style={styles.bgImageTop}
-              source={require('../../../../assets/images/home-bg-light.png')}
-            >
-              <View style={styles.bgImageTopInner}>
-                <TouchableOpacity onPress={this.setSignoutModal}>
-                  <Icon name="ellipsis-v" color="white" size={fs(3)} style={styles.bgImageTopIcon} />
-                </TouchableOpacity>
-
-              </View>
-              <Animated.View
-                style={[
-                  {
-                    paddingHorizontal: fs(3),
-                    paddingVertical: fs(5),
-                    justifyContent: 'space-between',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    alignSelf: 'center',
-                    alignContent: 'center',
-                    transform: [
-                      { translateY: this.state.blockA.transitionY }
-                    ]
-                  }]}
+              <ImageBackground
+                style={styles.bgImageTop}
+                source={require('../../../../assets/images/home-bg-light.png')}
               >
-                <View
-                  style={{
-                    alignSelf: 'flex-start',
-                    width: '65%'
-                  }}
-                >
-                  <Animated.Text
-                    style={[
-                      {
-                        fontWeight: 'bold',
-                        fontSize: fs(5),
-                        color: scheme.primaryText,
-                        opacity: blockA.opacity
-                      }
-                    ]}
-                  >{this.state.currentTime}</Animated.Text>
+                <View style={styles.bgImageTopInner}>
+                  <TouchableOpacity onPress={this.setSignoutModal}>
+                    <Icon name="ellipsis-v" color="white" size={fs(3)} style={styles.bgImageTopIcon} />
+                  </TouchableOpacity>
 
-                  <Card style={{
-                    overflow: 'hidden',
-                    borderRadius: fs(2),
-                    width: '90%',
-                  }}>
-                    <CardItem style={{
-                      backgroundColor: scheme.thirdBg
+                </View>
+                <Animated.View
+                  style={[
+                    {
+                      paddingHorizontal: fs(3),
+                      paddingVertical: fs(5),
+                      justifyContent: 'space-between',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      alignSelf: 'center',
+                      alignContent: 'center',
+                      transform: [
+                        { translateY: this.state.blockA.transitionY }
+                      ]
+                    }]}
+                >
+                  <View
+                    style={{
+                      alignSelf: 'flex-start',
+                      width: '65%'
+                    }}
+                  >
+                    <Animated.Text
+                      style={[
+                        {
+                          fontWeight: 'bold',
+                          fontSize: fs(5),
+                          color: scheme.primaryText,
+                          opacity: blockA.opacity
+                        }
+                      ]}
+                    >{this.state.currentTime}</Animated.Text>
+
+                    <Card style={{
+                      overflow: 'hidden',
+                      borderRadius: fs(2),
+                      width: '90%',
                     }}>
-                      <Body>
-                        <Animated.Text
-                          style={[{ fontSize: fs(1.5), color: scheme.primaryText, opacity: blockA.opacity }]}
-                          numberOfLines={2}
-                        >
-                          {this.state.location && this.state.location.detail ? this.state.location.detail : 'Mengambil detail lokasi . . .'}
-                        </Animated.Text>
+                      <CardItem style={{
+                        backgroundColor: scheme.thirdBg
+                      }}>
+                        <Body>
+                          <Animated.Text
+                            style={[{ fontSize: fs(1.5), color: scheme.primaryText, opacity: blockA.opacity }]}
+                            numberOfLines={2}
+                          >
+                            {this.state.location && this.state.location.detail ? this.state.location.detail : 'Mengambil detail lokasi . . .'}
+                          </Animated.Text>
+                        </Body>
+                      </CardItem>
+                    </Card>
+
+                  </View>
+
+
+                  <View
+                    style={{
+                      alignSelf: 'flex-end',
+                      width: '35%',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      // flexDirection: 'row'
+                    }}
+                  >
+                    <Animated.Image
+                      source={require('../../../../assets/images/presensi.png')}
+                      style={[{
+                        width: '100%',
+                        alignSelf: 'center',
+                        opacity: blockA.opacity
+                      }]}
+                    />
+                  </View>
+                </Animated.View>
+
+
+              </ImageBackground>
+            </View>
+            <View style={styles.contentWrapper}>
+              <BadgePresensi
+                bgColor={this.state.secondary}
+                textColor="white"
+                button="PRESENSI"
+                onPress={() => {
+                  this.props.navigation.navigate('HomeFacePresensiCamera', {
+                    flag: 'I',
+                    presensiProhibited: this.state.presensiProhibited,
+                    radius: this.state.presensiRadius
+                  })
+                }}
+                text="Anda belum melakukan presensi hari ini"
+                rIf={auth.profile.face_status == 'Y' && !hasPresensi}
+              />
+
+              <BadgePresensi
+                bgColor="white"
+                bordered
+                textColor={this.state.secondary}
+                text={presensi.last_presensi.lokasi}
+                title={`${presensi.last_presensi.flag == 'I' ? 'Masuk' : 'Keluar'}, ${moment(presensi.last_presensi.tanggal).format('DD MMMM YYYY')}`}
+                subtitle={`${presensi.last_presensi.jam} WIB`}
+                rIf={auth.profile.face_status == 'Y' && hasPresensi}
+              />
+
+              <BadgePresensi
+                bgColor={this.state.secondary}
+                text="Anda belum melakukan registrasi wajah"
+                textColor="white"
+                button="REGISTER"
+                onPress={() => {
+                  this.props.navigation.navigate('HomeRegisterFaceCamera')
+                }}
+                rIf={auth.profile.face_registered == "N" && auth.profile.face_status == 'N'}
+              />
+
+              <BadgePresensi
+                bgColor={this.state.primary}
+                text="Registrasi wajah anda sedang dalam proses verifikasi"
+                title="Menunggu Verifikasi"
+                textColor="white"
+                button="Refresh Status Verifikasi"
+                onPress={() => {
+                  this.setState({
+                    refreshing: true
+                  })
+                  this.getData()
+                }}
+                rIf={auth.profile.face_status == 'W'}
+              />
+              <Row style={{ backgroundColor: scheme.primaryBg, marginVertical: fs(2), height: 'auto' }}>
+                <Col size={6}>
+                  <Card style={{ borderRadius: fs(1), overflow: 'hidden', }}>
+                    <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
+                      <Body style={{ display: 'flex', justifyContent: 'center' }}>
+                        <PieChart
+                          data={this.state.chart.attendance}
+                          width={100}
+                          height={100}
+                          hasLegend={false}
+                          chartConfig={{
+                            backgroundGradientFrom: "#1E2923",
+                            backgroundGradientFromOpacity: 0,
+                            backgroundGradientTo: "#08130D",
+                            backgroundGradientToOpacity: 0.5,
+                            color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
+                            strokeWidth: 2, // optional, default 3
+                            barPercentage: 0.5,
+                            useShadowColorFromDataset: false // optional
+                          }}
+                          accessor="population"
+                          backgroundColor="transparent"
+                          paddingLeft="30"
+                          absolute
+                          style={{
+                            alignSelf: 'center'
+                          }}
+                        />
+
+                        <Text style={{
+                          alignSelf: 'center',
+                          color: '#493a76',
+                          fontWeight: 'bold',
+                          fontSize: fs(1.8)
+                        }}>ATTENDANCE</Text>
+
+                        {/* LEGEND */}
+                        <Row style={{ marginVertical: fs(1) }}>
+                          {
+                            this.state.chart.attendance.map(data => (
+                              <Col style={{ flexDirection: 'row' }}>
+                                <View style={{ width: fs(1.5), height: fs(1.5), backgroundColor: data.color, borderRadius: 1.5 }}
+                                />
+                                <Text style={{ fontSize: fs(1.3), paddingLeft: fs(.5) }}>{data.name}</Text>
+                              </Col>
+                            ))
+                          }
+                        </Row>
                       </Body>
                     </CardItem>
                   </Card>
-
-                </View>
-
-
-                <View
-                  style={{
-                    alignSelf: 'flex-end',
-                    width: '35%',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    // flexDirection: 'row'
-                  }}
-                >
-                  <Animated.Image
-                    source={require('../../../../assets/images/presensi.png')}
-                    style={[{
-                      width: '100%',
-                      alignSelf: 'center',
-                      opacity: blockA.opacity
-                    }]}
-                  />
-                </View>
-              </Animated.View>
-
-
-            </ImageBackground>
-          </View>
-          <View style={styles.contentWrapper}>
-            <BadgePresensi
-              bgColor={this.state.secondary}
-              textColor="white"
-              button="PRESENSI"
-              onPress={() => {
-                this.props.navigation.navigate('HomeFacePresensiCamera', {
-                  flag: 'I',
-                  presensiProhibited: this.state.presensiProhibited,
-                  radius: this.state.presensiRadius
-                })
-              }}
-              text="Anda belum melakukan presensi hari ini"
-              rIf={auth.profile.face_status == 'Y' && !hasPresensi}
-            />
-
-            <BadgePresensi
-              bgColor="white"
-              bordered
-              textColor={this.state.secondary}
-              text={presensi.last_presensi.lokasi}
-              title={`${presensi.last_presensi.flag == 'I' ? 'Masuk' : 'Keluar'}, ${moment(presensi.last_presensi.tanggal).format('DD MMMM YYYY')}`}
-              subtitle={`${presensi.last_presensi.jam} WIB`}
-              rIf={auth.profile.face_status == 'Y' && hasPresensi}
-            />
-
-            <BadgePresensi
-              bgColor={this.state.secondary}
-              text="Anda belum melakukan registrasi wajah"
-              textColor="white"
-              button="REGISTER"
-              onPress={() => {
-                this.props.navigation.navigate('HomeRegisterFaceCamera')
-              }}
-              rIf={auth.profile.face_registered == "N" && auth.profile.face_status == 'N'}
-            />
-
-            <BadgePresensi
-              bgColor={this.state.primary}
-              text="Registrasi wajah anda sedang dalam proses verifikasi"
-              title="Menunggu Verifikasi"
-              textColor="white"
-              button="Refresh Status Verifikasi"
-              onPress={() => {
-                this.setState({
-                  refreshing: true
-                })
-                this.getData()
-              }}
-              rIf={auth.profile.face_status == 'W'}
-            />
-            <Row style={{ backgroundColor: scheme.primaryBg, marginVertical: fs(2), height: 'auto' }}>
-              <Col size={6}>
-                <Card style={{ borderRadius: fs(1), overflow: 'hidden', }}>
-                  <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
-                    <Body style={{ display: 'flex', justifyContent: 'center' }}>
-                      <PieChart
-                        data={this.state.chart.attendance}
-                        width={100}
-                        height={100}
-                        hasLegend={false}
-                        chartConfig={{
-                          backgroundGradientFrom: "#1E2923",
-                          backgroundGradientFromOpacity: 0,
-                          backgroundGradientTo: "#08130D",
-                          backgroundGradientToOpacity: 0.5,
-                          color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
-                          strokeWidth: 2, // optional, default 3
-                          barPercentage: 0.5,
-                          useShadowColorFromDataset: false // optional
-                        }}
-                        accessor="population"
-                        backgroundColor="transparent"
-                        paddingLeft="30"
-                        absolute
-                        style={{
-                          alignSelf: 'center'
-                        }}
-                      />
-
-                      <Text style={{
-                        alignSelf: 'center',
-                        color: '#493a76',
-                        fontWeight: 'bold',
-                        fontSize: fs(1.8)
-                      }}>ATTENDANCE</Text>
-
-                      {/* LEGEND */}
-                      <Row style={{ marginVertical: fs(1) }}>
-                        {
-                          this.state.chart.attendance.map(data => (
-                            <Col style={{ flexDirection: 'row' }}>
-                              <View style={{ width: fs(1.5), height: fs(1.5), backgroundColor: data.color, borderRadius: 1.5 }}
-                              />
-                              <Text style={{ fontSize: fs(1.3), paddingLeft: fs(.5) }}>{data.name}</Text>
-                            </Col>
-                          ))
-                        }
-                      </Row>
-                    </Body>
-                  </CardItem>
-                </Card>
-              </Col>
-              <Col size={6}>
-                <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
-                  <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
-                    <Body style={{ display: 'flex', justifyContent: 'center' }}>
-                      <PieChart
-                        data={this.state.chart.presensi}
-                        width={100}
-                        height={100}
-                        hasLegend={false}
-                        chartConfig={{
-                          backgroundGradientFrom: "#1E2923",
-                          backgroundGradientFromOpacity: 0,
-                          backgroundGradientTo: "#08130D",
-                          backgroundGradientToOpacity: 0.5,
-                          color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
-                          strokeWidth: 2, // optional, default 3
-                          barPercentage: 0.5,
-                          useShadowColorFromDataset: false // optional
-                        }}
-                        accessor="population"
-                        backgroundColor="transparent"
-                        paddingLeft="30"
-                        absolute
-                        style={{
-                          alignSelf: 'center'
-                        }}
-                      />
-
-
-                      <Text style={{
-                        alignSelf: 'center',
-                        color: '#493a76',
-                        fontWeight: 'bold',
-                        fontSize: fs(1.8)
-                      }}>PRESENSI</Text>
-
-                      {/* LEGEND */}
-                      <Row style={{ marginVertical: fs(1) }}>
-                        {
-                          this.state.chart.presensi.map(data => (
-                            <Col style={{ flexDirection: 'row' }}>
-                              <View style={{ width: fs(1.5), height: fs(1.5), backgroundColor: data.color, borderRadius: 1.5 }}
-                              />
-                              <Text style={{ fontSize: fs(1.3), paddingLeft: fs(.5) }}>{data.name}</Text>
-                            </Col>
-                          ))
-                        }
-                      </Row>
-                    </Body>
-                  </CardItem>
-                </Card>
-              </Col>
-
-            </Row>
-
-            <Row style={{ height: 'auto' }}>
-              {this.state.announcement.map(list => (
-                <Col size={12}>
-
+                </Col>
+                <Col size={6}>
                   <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
                     <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
-                      <Body>
+                      <Body style={{ display: 'flex', justifyContent: 'center' }}>
+                        <PieChart
+                          data={this.state.chart.presensi}
+                          width={100}
+                          height={100}
+                          hasLegend={false}
+                          chartConfig={{
+                            backgroundGradientFrom: "#1E2923",
+                            backgroundGradientFromOpacity: 0,
+                            backgroundGradientTo: "#08130D",
+                            backgroundGradientToOpacity: 0.5,
+                            color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
+                            strokeWidth: 2, // optional, default 3
+                            barPercentage: 0.5,
+                            useShadowColorFromDataset: false // optional
+                          }}
+                          accessor="population"
+                          backgroundColor="transparent"
+                          paddingLeft="30"
+                          absolute
+                          style={{
+                            alignSelf: 'center'
+                          }}
+                        />
+
+
                         <Text style={{
-                          fontSize: fs(2.2),
-                          lineHeight: fs(3.8),
-                          color: scheme.primaryText
-                        }}>{list.judul}</Text>
-                        <Text style={{
-                          fontSize: fs(1.6),
-                          lineHeight: fs(3),
-                          color: scheme.primaryText
-                        }}>{list.isi}</Text>
+                          alignSelf: 'center',
+                          color: '#493a76',
+                          fontWeight: 'bold',
+                          fontSize: fs(1.8)
+                        }}>PRESENSI</Text>
+
+                        {/* LEGEND */}
+                        <Row style={{ marginVertical: fs(1) }}>
+                          {
+                            this.state.chart.presensi.map(data => (
+                              <Col style={{ flexDirection: 'row' }}>
+                                <View style={{ width: fs(1.5), height: fs(1.5), backgroundColor: data.color, borderRadius: 1.5 }}
+                                />
+                                <Text style={{ fontSize: fs(1.3), paddingLeft: fs(.5) }}>{data.name}</Text>
+                              </Col>
+                            ))
+                          }
+                        </Row>
                       </Body>
                     </CardItem>
                   </Card>
                 </Col>
 
-              ))}
-            </Row>
-          </View>
-        </Animated.ScrollView>
-        {/* </PanGestureHandler> */}
-      </Container >
+              </Row>
+
+              <Row style={{ height: 'auto' }}>
+                {this.state.announcement.map(list => (
+                  <Col size={12}>
+
+                    <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
+                      <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
+                        <Body>
+                          <Text style={{
+                            fontSize: fs(2.2),
+                            lineHeight: fs(3.8),
+                            color: scheme.primaryText
+                          }}>{list.judul}</Text>
+                          <Text style={{
+                            fontSize: fs(1.6),
+                            lineHeight: fs(3),
+                            color: scheme.primaryText
+                          }}>{list.isi}</Text>
+                        </Body>
+                      </CardItem>
+                    </Card>
+                  </Col>
+
+                ))}
+              </Row>
+            </View>
+          </Animated.ScrollView>
+          {/* </PanGestureHandler> */}
+        </Container >
+      </React.Fragment>
     )
   }
 }
@@ -814,6 +851,7 @@ const mapDispatchToProps = dispatch => {
     resetPresensi: () => dispatch({ type: 'RESET_PRESENSI' }),
     editProfile: (payload) => dispatch({ type: 'EDIT_PROFILE', profile: payload }),
     setPresensiConfig: (payload) => dispatch({ type: 'SET_PRESENSI_CONFIG', presensi_conf: payload }),
+    setPresensiPermission: (payload) => dispatch({ type: 'SET_PRESENSI_PERMISSION', permission: payload }),
   }
 }
 

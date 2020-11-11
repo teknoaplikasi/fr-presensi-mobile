@@ -3,6 +3,7 @@ import { GMAPS_KEY } from '../../config'
 import {
   circleContainsLocation
 } from "@goparrot/react-native-geometry-utils";
+import Geolocation from '@react-native-community/geolocation';
 
 
 export function geocodeLatLong(latitude, longitude) {
@@ -89,4 +90,40 @@ export async function shortestDistance(coords, arrayOfCoords) {
     shortestDistance: shortestDistance,
     presensiProhibited: shortestDistance.distance * 1000 > parseFloat(shortestDistance.radius)
   }
+}
+
+export async function currentDeviceLocation() {
+  return new Promise(async (resolve, reject) => {
+    Geolocation.getCurrentPosition(async ({ coords }) => {
+
+      let locationDetail = await geocodeLatLong(coords.latitude, coords.longitude)
+      if (!locationDetail.success) {
+
+        return resolve({
+          success: false,
+          coordinates: coords,
+          errorMessage: 'Gagal mengambil informasi lokasi'
+        })
+      }
+      coords.detail = locationDetail.result
+      return resolve({
+        success: true,
+        coordinates: coords
+      })
+    }, (err) => {
+      if ('PERMISSION_DENIED' in err && err.PERMISSION_DENIED == 1) {
+        return reject({
+          success: false,
+          locationService: false,
+          errorMessage: 'Lokasi tidak aktif',
+          debug: JSON.stringify(err)
+        })
+      }
+      return reject({
+        success: false,
+        locationService: false,
+        errorMessage: JSON.stringify(err)
+      })
+    })
+  })
 }

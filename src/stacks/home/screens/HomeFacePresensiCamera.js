@@ -168,7 +168,7 @@ export class HomeFacePresensiCamera extends Component {
 
     //success
     if (!faceVerify.result.valid) {
-      return this.setState({ registerStatus: faceVerify.result.valid, registerStatusMsg: 'Presensi gagal. Face ID tidak terdaftar' })
+      return this.setState({ registerStatus: faceVerify.result.valid, registerStatusMsg: 'Presensi gagal. Face ID tidak sesuai' })
     }
 
     const payload = {

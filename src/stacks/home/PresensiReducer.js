@@ -8,7 +8,8 @@ const intitialState = {
     flag: null,
     perusahaan_id: null
   },
-  presensi_conf: []
+  presensi_conf: [],
+  presensi_permission: false
 }
 
 const PresensiReducer = (state = intitialState, action) => {
@@ -30,6 +31,12 @@ const PresensiReducer = (state = intitialState, action) => {
       return {
         ...state,
         presensi_conf: action.presensi_conf
+      }
+
+    case 'SET_PRESENSI_PERMISSION':
+      return {
+        ...state,
+        presensi_permission: action.permission
       }
     default:
       return state

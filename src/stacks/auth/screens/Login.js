@@ -18,8 +18,8 @@ export class Login extends Component {
       form: {
         active: null,
         value: {
-          username: '',
-          password: ''
+          username: 'edoharb77@gmail.com',
+          password: 'password'
         },
         error: {
           username: false,
@@ -152,6 +152,7 @@ export class Login extends Component {
       return simpleToast('Anda belum terdaftar di perusahaan')
     const perusahaanId = login.perusahaan[0].id
     const companyInfo = await API.getDev(`view/perusahaan/${perusahaanId}`, true, {})
+    console.log(JSON.stringify(companyInfo))
     const faceId = await API.getDev('FaceId', true, {
       id: login.profile.id
     })

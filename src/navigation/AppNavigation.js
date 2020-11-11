@@ -27,6 +27,8 @@ function MyTabBar({ state, descriptors, navigation, auth, presentLogoutAlert, pr
     return null;
   }
 
+  // alert(JSON.stringify(presensi))
+
   return (
     <View style={{
       flexDirection: 'row',
@@ -39,9 +41,6 @@ function MyTabBar({ state, descriptors, navigation, auth, presentLogoutAlert, pr
       borderRadius: fs(10),
       borderWidth: 1.5,
       borderColor: 'rgba(172,172,172,.2)',
-      // transform: [
-      //   { translateY: fs(-2) }
-      // ],
       shadowColor: "#000",
       shadowOffset: {
         width: 0,
@@ -84,16 +83,19 @@ function MyTabBar({ state, descriptors, navigation, auth, presentLogoutAlert, pr
 
         if (label == 'TouchableTab') {
 
+          let presensiPermission = presensi.presensi_permission && auth.profile.face_registered == 'Y' && auth.profile.face_status == 'Y'
+
+          // console.log('prsensiPermission', presensiPer)
+
           let isPresensiIn = false
           const lastPresensi = presensi.last_presensi
-          console.log('last presensi', lastPresensi)
           const dateNow = moment().format('YYYY-MM-DD')
           if (!lastPresensi || !lastPresensi.tanggal) {
             isPresensiIn = true
           }
 
           else if (lastPresensi.tanggal == dateNow && lastPresensi.flag == 'I') {
-            console.log('masuk')
+            // console.log('masuk')
             isPresensiIn = false
           }
 
@@ -109,13 +111,15 @@ function MyTabBar({ state, descriptors, navigation, auth, presentLogoutAlert, pr
             isPresensiIn = false
           }
 
-          console.log('ispresensi in', isPresensiIn)
+
+          // console.log('ispresensi in', isPresensiIn)
           return (
             <TouchableOpacity
+              disabled={!presensiPermission}
               style={{
                 width: w(13),
                 height: w(13),
-                backgroundColor: '#8335f4',
+                backgroundColor: `rgba(131, 53, 244, ${!presensiPermission ? '0.6' : '1'})`,
                 position: 'relative',
                 marginTop: fs(1),
                 borderRadius: w(6.5),
@@ -123,6 +127,9 @@ function MyTabBar({ state, descriptors, navigation, auth, presentLogoutAlert, pr
                 alignItems: 'center'
               }}
               onPress={async () => {
+                if (!presensiPermission) {
+                  return null
+                }
                 if (isPresensiIn) {
                   navigation.navigate('HomeFacePresensiCamera', {
                     flag: isPresensiIn ? 'I' : 'O'

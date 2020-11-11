@@ -4,8 +4,10 @@ import { ImageBackground, StatusBar, StyleSheet, Text, View, Image } from 'react
 import { responsiveWidth as w, responsiveHeight as h, responsiveScreenFontSize as fs, responsiveScreenHeight } from 'react-native-responsive-dimensions'
 
 import Icon from 'react-native-vector-icons/FontAwesome5'
+import { Button } from 'native-base'
 
 import Theme from '../../../utils/Theme'
+import { CommonActions } from '@react-navigation/native'
 export class RegisterSuccess extends Component {
 
   constructor() {
@@ -82,8 +84,27 @@ export class RegisterSuccess extends Component {
             }}
           >
             {this.props.route.params.email}
+            {/* email section */}
           </Text>
         </View>
+
+        <Button
+          style={{ backgroundColor: 'white', alignSelf: 'center', paddingHorizontal: fs(6), marginTop: fs(2) }}
+          onPress={() => {
+
+            this.props.navigation.dispatch(
+              CommonActions.reset({
+                routes: [
+                  { name: 'Login' },
+                ],
+
+                index: 0
+              })
+            )
+          }}
+        >
+          <Text>Kembali ke Login</Text>
+        </Button>
       </ImageBackground>
     )
   }
