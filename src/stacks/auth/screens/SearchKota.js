@@ -58,7 +58,7 @@ export class SearchKota extends Component {
         ...prevState.query,
         psearch: value
       }
-    }))
+    }), () => { this.getData() })
   }
 
   onSelectItem = (item) => {
@@ -117,6 +117,7 @@ export class SearchKota extends Component {
             onEndEditing={this.getData}
             returnKeyType="search"
             returnKeyLabel="Cari"
+            ionChange
           />
         </Item>
       </View>

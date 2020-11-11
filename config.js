@@ -7,4 +7,5 @@ export const API_URL = 'http://api-presensi.pttas.xyz/'
 // export const 
 export const GMAPS_KEY = 'AIzaSyBQyCUJ93pD6_SL-1WVkZxuDqiqu4_8bHI'
 export const ASSETS_URL = 'http://api-presensi.pttas.xyz/custom/upload'
+export const PRODUCTION_MODE = true
 // export const ASSETS_URL = 'http://192.168.0.182/presensi21/api/custom/upload'

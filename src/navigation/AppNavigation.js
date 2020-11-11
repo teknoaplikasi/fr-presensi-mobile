@@ -116,6 +116,7 @@ function MyTabBar({ state, descriptors, navigation, auth, presentLogoutAlert, pr
           return (
             <TouchableOpacity
               disabled={!presensiPermission}
+              key={index}
               style={{
                 width: w(13),
                 height: w(13),
@@ -148,6 +149,7 @@ function MyTabBar({ state, descriptors, navigation, auth, presentLogoutAlert, pr
 
         return (
           <TouchableOpacity
+            key={index}
             accessibilityRole="button"
             accessibilityState={isFocused ? { selected: true } : {}}
             accessibilityLabel={options.tabBarAccessibilityLabel}

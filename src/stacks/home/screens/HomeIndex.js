@@ -75,14 +75,19 @@ export class HomeIndex extends Component {
   }
 
   componentDidMount = async () => {
-
+    console.log('did mount', this.props.navigation.canGoBack())
     // checkAllPermission()
 
-    this.getData()
-    this.initValue()
-    this.initChart()
+    if (!this.props.navigation.canGoBack()) {
+      this.getData()
+      this.initValue()
+      this.initChart()
+
+    }
     // login
     this.isFocus = this.props.navigation.addListener('focus', () => {
+      console.log('did mount', this.props.navigation.canGoBack())
+
       this.getData()
       this.initValue()
       this.initChart()
@@ -92,11 +97,6 @@ export class HomeIndex extends Component {
         })
       }, 1000)
     })
-    // this.intervalCurrentTime = setInterval(() => {
-    //   this.setState({
-    //     currentTime: moment().format('HH:mm:ss')
-    //   })
-    // }, 1000)
   }
 
   testValidasi = async () => {
@@ -140,22 +140,6 @@ export class HomeIndex extends Component {
 
     this.props.setPresensiPermission(faceStatus.data.face == 'Y')
 
-    // Geolocation.getCurrentPosition(async ({ coords }) => {
-    //   let locationDetail = await geocodeLatLong(coords.latitude, coords.longitude)
-    //   if (!locationDetail.success) {
-
-    //     this.setState({ refreshing: false })
-    //     return simpleToast('Gagal mendapatkan lokasi anda')
-    //   }
-    //   coords.detail = locationDetail.result
-    //   this.setState({
-    //     refreshing: false,
-    //     location: coords
-    //   }, () => {
-
-    //     this.testValidasi()
-    //   })
-    // }, (err) => { console.log('error', err) })
     currentDeviceLocation()
       .then((res) => {
         console.log('res', res)
@@ -676,8 +660,8 @@ export class HomeIndex extends Component {
                         {/* LEGEND */}
                         <Row style={{ marginVertical: fs(1) }}>
                           {
-                            this.state.chart.attendance.map(data => (
-                              <Col style={{ flexDirection: 'row' }}>
+                            this.state.chart.attendance.map((data, i) => (
+                              <Col style={{ flexDirection: 'row' }} key={i}>
                                 <View style={{ width: fs(1.5), height: fs(1.5), backgroundColor: data.color, borderRadius: 1.5 }}
                                 />
                                 <Text style={{ fontSize: fs(1.3), paddingLeft: fs(.5) }}>{data.name}</Text>
@@ -728,8 +712,8 @@ export class HomeIndex extends Component {
                         {/* LEGEND */}
                         <Row style={{ marginVertical: fs(1) }}>
                           {
-                            this.state.chart.presensi.map(data => (
-                              <Col style={{ flexDirection: 'row' }}>
+                            this.state.chart.presensi.map((data, i) => (
+                              <Col style={{ flexDirection: 'row' }} key={i}>
                                 <View style={{ width: fs(1.5), height: fs(1.5), backgroundColor: data.color, borderRadius: 1.5 }}
                                 />
                                 <Text style={{ fontSize: fs(1.3), paddingLeft: fs(.5) }}>{data.name}</Text>
@@ -745,8 +729,8 @@ export class HomeIndex extends Component {
               </Row>
 
               <Row style={{ height: 'auto' }}>
-                {this.state.announcement.map(list => (
-                  <Col size={12}>
+                {this.state.announcement.map((list, i) => (
+                  <Col size={12} key={i}>
 
                     <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
                       <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
