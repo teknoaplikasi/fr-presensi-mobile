@@ -6,7 +6,6 @@ import { responsiveHeight as h, responsiveFontSize as fs, responsiveScreenWidth 
 import { API } from '../../../utils/Api'
 import Icon from 'react-native-vector-icons/FontAwesome5'
 import { simpleToast } from '../../../utils/DisplayHelper'
-import { geocodeLatLong } from '../../../utils/GeolocationHelper'
 import moment from 'moment'
 import { connect } from 'react-redux'
 import { ASSETS_URL } from '../../../../config'
@@ -27,37 +26,28 @@ class HomePresensiHistory extends Component {
 
   componentDidMount = async () => {
     // moment.locale('id')
-    // this.initValue()
-    // this.getData()
+    this.initValue()
+    this.getData()
 
     // this.getData()
     this.isFocus = this.props.navigation.addListener('focus', () => {
-      // moment.locale('id')
       this.initValue()
       this.getData()
     })
+
   }
 
   initValue = async () => {
     StatusBar.setBarStyle('dark-content')
     StatusBar.setBackgroundColor('#ffffff')
-
-
-    // let test = await geocodeLatLong("-6.9837541", "110.4619592")
-    // console.log('test', test)
   }
 
-  // https://www.google.com/maps/place/PT+TEKNO+APLIKASI+SEJAHTERA+BASECAMP/@-7.0320996,110.4948269,17z/data=!3m1!4b1!4m5!3m4!1s0x2e708dbfe592e8dd:0x443bbcd9ec773060!8m2!3d-7.0320996!4d110.4970156
 
   getData = async () => {
-    // moment().locale('id')
     let histories = await API.getDev('RiwayatPresensi', true, {
       perusahaan_id: this.props.auth.profile.perusahaan_id,
       id: this.props.auth.profile.id
     })
-
-
-    console.log('history', histories)
 
     if (!histories.success) {
       this.setState({ statusData: histories.success, loading: false })
@@ -66,8 +56,6 @@ class HomePresensiHistory extends Component {
 
     let arrHistories = []
     for (const [key, value] of Object.entries(histories.data)) {
-      // console.log(`${key}: ${value}`);
-      // console.log(value)
       arrHistories.push({
         date: moment(value.tanggal).format('DD MMMM YYYY'),
         in: value.masuk,
@@ -141,6 +129,8 @@ class HomePresensiHistory extends Component {
         </View>
 
         <ScrollView
+          // onScrollBeginDrag={() => alert('test')}
+          // onScrollEndDrag={() => alert('end')}
           refreshControl={<RefreshControl refreshing={this.state.loading} onRefresh={this.onRefresh} />}
         >
 
@@ -152,7 +142,7 @@ class HomePresensiHistory extends Component {
                 <View style={[
                   styles.historyWrapper,
                   { backgroundColor: index % 2 ? '#fff' : 'rgba(94, 114, 228, 0.04)' }
-                ]}>
+                ]} key={index}>
                   <Row>
                     <Col size={1}>
                       {

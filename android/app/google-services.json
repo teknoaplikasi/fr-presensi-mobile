@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "738279135375",
+    "firebase_url": "https://pttas-presensi-9e48c.firebaseio.com",
+    "project_id": "pttas-presensi-9e48c",
+    "storage_bucket": "pttas-presensi-9e48c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:738279135375:android:24ff1fff589128136bb8fa",
+        "android_client_info": {
+          "package_name": "com.facerecognition"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "738279135375-alhcq30hedcei7gajja83recjbtjgk9i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV0goDOnzLwOt6yrXSDLLwYGkaKWF3d-8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "738279135375-alhcq30hedcei7gajja83recjbtjgk9i.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

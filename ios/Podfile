@@ -19,6 +19,12 @@ target 'FaceRecognition' do
 
   pod 'RNSound', :path => '../node_modules/react-native-sound'
 
+  pod 'RNPermissions', :path => '../node_modules/react-native-permissions'
+
+  pod 'react-native-image-picker', :path => '../node_modules/react-native-image-picker'
+
+  pod 'RNGoogleSignin', :path => '../node_modules/@react-native-community/google-signin'
+
   target 'FaceRecognitionTests' do
     inherit! :complete
     # Pods for testing

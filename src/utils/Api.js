@@ -55,10 +55,10 @@ export const API = {
         }
       })
   },
-  async postDev(path = '', auth = false, body = {}) {
+  async postDev(path = '', auth = false, body = {}, contentType = 'application/json') {
     path = `${API_URL}${path}`
     let headers = {}
-    headers['Content-Type'] = 'application/json'
+    headers['Content-Type'] = contentType
     if (auth) {
       let state = Store.getState()
       auth = state.auth.token

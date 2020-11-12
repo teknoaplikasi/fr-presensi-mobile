@@ -19,6 +19,8 @@ import { currentDeviceLocation, geocodeLatLong, geofenceRadius, shortestDistance
 import { simpleToast } from '../../../utils/DisplayHelper';
 import { checkAllPermission } from '../../../utils/Permissions';
 import LocationNotAvailable from '../../../components/LocationNotAvailable';
+import Loading from '../../../components/Loading';
+import { AzureFaceAPI } from '../../../utils/Azure';
 
 
 
@@ -29,6 +31,7 @@ export class HomeIndex extends Component {
     this.state = {
       //move theme later
       location: null,
+      faceSync: false,
       locationServiceAlert: null,
       refreshing: true,
       isPresensiIn: null,
@@ -52,7 +55,6 @@ export class HomeIndex extends Component {
       },
 
       blockA: {
-        opacity: new Animated.Value(1),
         transitionY: fs(-3)
       },
 
@@ -61,36 +63,35 @@ export class HomeIndex extends Component {
 
     }
 
-    this.blockATransform = new Animated.Value(fs(7))
-    this.blockAOpacity = new Animated.Value(1)
-    this.blockBTop = new Animated.Value(h(40))
-
     this.initChart = this.initChart.bind(this)
-    this.onBlockBPanned = this.onBlockBPanned.bind(this)
-    this.onChangeStateBlockB = this.onChangeStateBlockB.bind(this)
-    this.test = this.test.bind(this)
     this.setLogoutModal = this.setLogoutModal.bind(this)
-    this.testAnimate = this.testAnimate.bind(this)
     this.setSignoutModal = this.setSignoutModal.bind(this)
+    this.syncFace = this.syncFace.bind(this)
   }
 
   componentDidMount = async () => {
-    console.log('did mount', this.props.navigation.canGoBack())
-    // checkAllPermission()
 
-    if (!this.props.navigation.canGoBack()) {
-      this.getData()
-      this.initValue()
-      this.initChart()
+    // console.log('did mount')
+    this.getData()
+    this.initValue()
+    this.initChart()
+    this.syncFace()
 
-    }
+    this.intervalCurrentTime = setInterval(() => {
+      this.setState({
+        currentTime: moment().format('HH:mm:ss')
+      })
+    }, 1000)
+
     // login
     this.isFocus = this.props.navigation.addListener('focus', () => {
-      console.log('did mount', this.props.navigation.canGoBack())
+      console.log('nav is focus')
 
       this.getData()
       this.initValue()
       this.initChart()
+      this.syncFace()
+
       this.intervalCurrentTime = setInterval(() => {
         this.setState({
           currentTime: moment().format('HH:mm:ss')
@@ -99,10 +100,54 @@ export class HomeIndex extends Component {
     })
   }
 
+  syncFace = async () => {
+    let { last_presensi } = this.props.presensi
+    if (!last_presensi.tanggal && !last_presensi.jam) return
+
+    let lastPresensi = `${last_presensi.tanggal} ${last_presensi.jam}`
+    const diff = moment().utcOffset(420).diff(lastPresensi, 'hours')
+    if (parseInt(diff) < 24) return
+    this.setState({ faceSync: true })
+    let face = await API.getDev('FaceId', true, {})
+    if (!face.success) {
+      this.setState({ faceSync: false })
+      return simpleToast('Gagal sinkronasi Face ID')
+    }
+
+    if (face.data.length == 0)
+      return this.setState({ faceSync: false })
+
+    let faceUri = face.data[0].face_display
+
+    let newFace = await AzureFaceAPI.updateFace(faceUri)
+    if (!newFace.success) {
+      this.setState({ faceSync: false })
+      return simpleToast('Gagal sinkronasi Face ID')
+    }
+    API.postDev('UpdateFaceId', true, {
+      face_id: newFace.result[0].faceId,
+      wajah_id: face.data[0].id
+    })
+      .then(res => {
+
+        this.setState({ faceSync: false })
+        if (!res.success)
+          return simpleToast(res.failureMessage)
+
+        return simpleToast('Sinkronasi Face ID berhasil')
+      })
+      .catch(err => {
+
+        this.setState({ faceSync: false })
+        return simpleToast(JSON.stringify(err))
+      })
+
+
+
+  }
+
   testValidasi = async () => {
-    // simpleToast(JSON.stringify(this.state.location))
     const check = await shortestDistance(this.state.location, this.props.presensi.presensi_conf)
-    console.log('check', check)
 
     this.setState({
       presensiProhibited: check.presensiProhibited,
@@ -113,12 +158,10 @@ export class HomeIndex extends Component {
 
   getData = async () => {
     const faceStatus = await API.getDev('ValidateFace', true, { user_id: this.props.auth.profile.id })
-    // console.log(JSON.stringify(faceStatus))
 
 
     const announcement = await API.getDev('list/pengumuman', true, { aktif: 'Y' })
     const presensiConfig = await API.getDev('ConfigPresensi', true, { perusahaan_id: this.props.auth.profile.perusahaan_id, user_id: this.props.auth.profile.id })
-    console.log('presensiConfig', JSON.stringify(presensiConfig))
     if (!presensiConfig.success)
       simpleToast("Gagal mengambil data konfigurasi presensi")
     else
@@ -142,7 +185,6 @@ export class HomeIndex extends Component {
 
     currentDeviceLocation()
       .then((res) => {
-        console.log('res', res)
         this.setState({
           locationServiceAlert: false,
           refreshing: false,
@@ -150,7 +192,6 @@ export class HomeIndex extends Component {
         }, () => this.testValidasi())
       })
       .catch((err) => {
-        console.log('err', err)
         this.setState({
           refreshing: false,
           locationServiceAlert: true,
@@ -173,7 +214,7 @@ export class HomeIndex extends Component {
     }
 
     else if (lastPresensi.tanggal == dateNow && lastPresensi.flag == 'I') {
-      console.log('masuk')
+      // console.log('masuk')
       isPresensiIn = false
     }
 
@@ -256,50 +297,6 @@ export class HomeIndex extends Component {
     })
   }
 
-  onBlockBPanned = (event) => {
-    const { initialY } = this.state.blockBHeight
-    const transY = event.nativeEvent.translationY
-    let value = h(40)
-    if (initialY + transY < h(40))
-      value = initialY + transY
-    if (initialY + transY < 0)
-      value = 0
-    this.test(value)
-    this.setState(prevState => ({
-      blockBHeight: {
-        ...prevState.blockBHeight,
-        value: value
-      }
-    }))
-
-  }
-
-  onChangeStateBlockB = (event) => {
-    //end state
-    if (event.nativeEvent.state == 5) {
-      const initialY = this.blockBTop
-      const transY = event.nativeEvent.translationY
-      let value = initialY + transY > h(40) ? h(40) : initialY + transY
-      this.setState(prevState => ({
-        blockBHeight: {
-          ...prevState.blockBHeight,
-          initialY: prevState.blockBHeight.value
-        }
-      }))
-    }
-  }
-
-  test = (value) => {
-    const calculated = value / h(40)
-    this.state.blockA.opacity.setValue(calculated)
-    this.setState(prevState => ({
-      blockA: {
-        ...prevState.blockA,
-        transitionY: fs(-10 + (calculated * 7)),
-      }
-    }))
-  }
-
   setLogoutModal = () => {
     this.setState({ logoutModalVisible: !this.state.logoutModalVisible })
   }
@@ -307,8 +304,6 @@ export class HomeIndex extends Component {
   setSignoutModal = () => {
     this.setState({ signoutModalVisible: !this.state.signoutModalVisible })
   }
-
-  testAnimate = () => { }
 
   renderModal() {
     const durasiKerja = `${parseInt(moment(`${this.props.presensi.last_presensi.tanggal} ${this.props.presensi.last_presensi.jam}`).format('H')) - parseInt(moment().format('H'))} jam`
@@ -424,9 +419,9 @@ export class HomeIndex extends Component {
                 alignItems: 'center'
               }}
               onPress={() => {
-                alert('profile page coming soom')
-                // this.setSignoutModal()
-                // this.props.navigation.navigate('HomeProfile')
+                // alert('profile page coming soom')
+                this.setSignoutModal()
+                this.props.navigation.navigate('HomeProfile')
               }}
             >
               <Icon name="user" color="grey" size={fs(2.5)} />
@@ -459,13 +454,21 @@ export class HomeIndex extends Component {
 
 
   render() {
-    const { mode, scheme, blockA, locationServiceAlert } = this.state
+    const { mode, scheme, blockA, locationServiceAlert, faceSync } = this.state
     const { auth, presensi } = this.props
     const hasPresensi = this.props.presensi.last_presensi.tanggal && this.props.presensi.last_presensi.tanggal == moment().format('YYYY-MM-DD')
     return (
       <React.Fragment>
+        <Loading
+          rIf={faceSync}
+          message="Sinkronasi Face ID"
+        />
         <LocationNotAvailable
           rIf={locationServiceAlert}
+          onRefresh={() => {
+            this.setState({ refreshing: true })
+            this.getData()
+          }}
         />
         <Container>
           <Animated.ScrollView
@@ -553,7 +556,6 @@ export class HomeIndex extends Component {
                       width: '35%',
                       justifyContent: 'center',
                       alignItems: 'center',
-                      // flexDirection: 'row'
                     }}
                   >
                     <Animated.Image

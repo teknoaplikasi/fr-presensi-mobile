@@ -32,6 +32,36 @@ export const AzureFaceAPI = {
 
   },
 
+  async updateFace(url) {
+
+    var config = {
+      method: 'post',
+      url: `${AZURE_BASE_URL}/face-update`,
+      headers: {
+        'Ocp-Apim-Subscription-Key': AZURE_KEY,
+        'Content-Type': 'application/json'
+      },
+      data: { url: url }
+    };
+    // console.log("manggil azure api")
+
+    return axios(config)
+      .then(function (response) {
+        return {
+          success: true,
+          result: response.data
+        }
+      })
+      .catch(function (error) {
+        // console.log("ada error", error.response)
+
+        return {
+          success: false,
+          error: error.response.data
+        }
+      });
+  },
+
   async detect(imageUrl) {
 
     var data = new FormData();

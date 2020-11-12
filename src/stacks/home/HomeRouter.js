@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, Text } from 'react-native'
-import { createStackNavigator } from '@react-navigation/stack'
+import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack'
 import HomeIndex from './screens/HomeIndex'
 import HomeFaceRecognition from './screens/HomeFaceRecognition'
 import { useFocusEffect } from '@react-navigation/native'
@@ -39,7 +39,9 @@ function HomeRouter(props) {
         component={HomeIndex}
         options={{
           title: 'Face Recognition',
-          headerShown: false
+          headerShown: false,
+
+          cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS
         }}
       />
       <Stack.Screen
@@ -48,6 +50,8 @@ function HomeRouter(props) {
         options={{
           title: 'Edit Profil',
           headerShown: true,
+
+          cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS
         }}
       />
 
@@ -63,7 +67,8 @@ function HomeRouter(props) {
         name="HomeFacePresensiCamera"
         component={HomeFacePresensiCamera}
         options={{
-          headerShown: false
+          headerShown: false,
+          cardStyleInterpolator: CardStyleInterpolators.forRevealFromBottomAndroid
         }}
       />
 
@@ -72,7 +77,8 @@ function HomeRouter(props) {
         component={HomePresensiHistory}
         options={{
           headerShown: true,
-          title: 'Presensi Bulan Ini'
+          title: 'Presensi Bulan Ini',
+          cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS
 
         }}
       />

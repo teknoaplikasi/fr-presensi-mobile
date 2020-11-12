@@ -52,11 +52,13 @@ class LocationNotAvailable extends React.Component {
             alignItems: 'center'
           }}
         >
-          <View style={{ width: '100%', height: h(50), paddingVertical: fs(1.5) }}>
+          <View style={{ width: '100%', height: h(60), paddingVertical: fs(1.5) }}>
             <Image
-              source={require('../../assets/images/no-permission.png')}
+              // source={require('../../assets/images/no-permission.png')}
+              source={{ uri: 'https://stickershop.line-scdn.net/stickershop/v1/product/1217017/LINEStorePC/main.png' }}
               style={{
-                width: '30%',
+                width: '40%',
+                height: h(30),
                 alignSelf: 'center'
               }}
               resizeMode="contain"
@@ -70,18 +72,18 @@ class LocationNotAvailable extends React.Component {
               textAlign: 'center',
               marginVertical: fs(1.5),
               color: '#8c8c8c'
-            }}>Aplikasi Presensi membutuhkan akses lokasi untuk melakukan presensi. Aktifkan Layanan Lokasi pada device anda lalu buka aplikasi</Text>
+            }}>Aplikasi membutuhkan akses lokasi untuk melakukan presensi. Silahkan aktifkan layanan lokasi (GPS)</Text>
 
             <Button
               primary
               rounded
-              onPress={this.askLocationRequest}
+              onPress={this.props.onRefresh}
               style={{
                 paddingHorizontal: fs(5),
                 alignSelf: 'center'
               }}
             >
-              <Text style={{ color: '#fff' }}>Aktifkan Lokasi</Text>
+              <Text style={{ color: '#fff' }}>Refresh</Text>
             </Button>
           </View>
         </View>

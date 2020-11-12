@@ -8,10 +8,22 @@ import { connect } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome5'
 import { simpleToast } from '../../../utils/DisplayHelper';
 import Loading from '../../../components/Loading'
-
+import {
+  GoogleSignin,
+  GoogleSigninButton,
+  statusCodes,
+} from '@react-native-community/google-signin';
 export class Login extends Component {
   constructor(props) {
     super(props)
+
+
+    GoogleSignin.configure({
+      scopes: ['profile'],
+      webClientId: '738279135375-alhcq30hedcei7gajja83recjbtjgk9i.apps.googleusercontent.com', // client ID of type WEB for your server (needed to verify user ID and offline access)
+      offlineAccess: true, forceCodeForRefreshToken: true, // [Android] related to `serverAuthCode`, read the docs link below *.
+
+    });
 
     this.state = {
       loading: false,
@@ -44,7 +56,34 @@ export class Login extends Component {
     this.keyboardWillShowSub = Keyboard.addListener('keyboardWillShow', this.keyboardWillShow)
     this.keyboardWillHideSub = Keyboard.addListener('keyboardWillHide', this.keyboardWillHide)
     this.keyboardDidHideSub = Keyboard.addListener('keyboardDidHide', async () => { await this.keyboardWillHide() })
+
+
   }
+
+  signIn = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      this.setState({ userInfo });
+      console.log(JSON.stringify(userInfo))
+    } catch (error) {
+      console.log('err', JSON.stringify(error))
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // user cancelled the login flow
+        console.log('error cancel')
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        console.log('error in progress')
+
+        // operation (e.g. sign in) is in progress already
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        // play services not available or outdated
+        console.log('go play')
+
+      } else {
+        // some other error happened
+      }
+    }
+  };
 
   componentDidMount = () => {
     //dev
@@ -197,6 +236,7 @@ export class Login extends Component {
     return (
       <React.Fragment>
         <Loading rIf={this.state.login} />
+        {/* <Button onPress={this.signIn}><Text>Test</Text></Button> */}
         <Animated.ScrollView
           style={{
             flex: 1,
@@ -214,7 +254,7 @@ export class Login extends Component {
               source={require('../../../../assets/images/home-bg-light.png')}
               style={{
                 width: w(100),
-                height: h(40),
+                height: h(38),
                 backgroundColor: '#ffac1f',
                 position: 'relative'
               }}

@@ -5,6 +5,7 @@ const light = {
   secondaryText: '#ffffff',
   primaryColorText: '#3b3b77',
   primaryColor: '#8335F4',
+  primaryColorRGB: '131, 53, 244',
   secondaryColor: '#FF9859',
   primaryBg: '#ffffff',
   secondaryBg: '#ffffff',

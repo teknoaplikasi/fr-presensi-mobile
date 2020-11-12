@@ -179,7 +179,8 @@ export class HomeFacePresensiCamera extends Component {
       longitude: this.state.location.longitude,
       flag: this.props.route.params.flag,
       lokasi_id: this.state.companyLocation.id,
-      lokasi: this.state.location.detail
+      lokasi: this.state.location.detail,
+      face_id: faceIdStr
     }
 
     let submit = await API.postDev('add/kehadiran', true, payload)
@@ -194,6 +195,7 @@ export class HomeFacePresensiCamera extends Component {
       registerStatus: true,
       registerStatusMsg: 'Presensi Berhasil'
     })
+    this.props.setFaceId(faceIdStr)
     this.props.setLastPresensi(payload)
     await this.sleep(2000)
     this.props.navigation.pop()
@@ -257,7 +259,7 @@ export class HomeFacePresensiCamera extends Component {
             }}
           >
             <Text style={{ fontWeight: 'bold', fontSize: fs(2.8), textAlign: 'center' }}>Presensi Ditolak</Text>
-            <Text style={{ marginTop: fs(2), fontSize: fs(1.7), textAlign: 'center' }}>Presensi hanya dapat dilakukan radius {this.state.radius} meter dari lokasi perusahaan. Pastikan blabla dan coba lagi</Text>
+            <Text style={{ marginTop: fs(2), fontSize: fs(1.7), textAlign: 'center' }}>Presensi hanya dapat dilakukan radius {this.props.route.params.radius} meter dari lokasi perusahaan</Text>
             <View style={{
               paddingTop: fs(5),
               flexDirection: 'column',
@@ -565,7 +567,8 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = dispatch => {
   return {
-    setLastPresensi: (payload) => dispatch({ type: 'SET_LAST_PRESENSI', payload: payload })
+    setLastPresensi: (payload) => dispatch({ type: 'SET_LAST_PRESENSI', payload: payload }),
+    setFaceId: (payload) => dispatch({ type: 'SET_FACE_ID', faceId: payload })
   }
 }
 

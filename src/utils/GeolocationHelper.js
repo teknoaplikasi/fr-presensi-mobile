@@ -86,9 +86,11 @@ export async function shortestDistance(coords, arrayOfCoords) {
       }
     })
   )
+  console.log('coords', coords)
+  console.log('shortest distance', shortestDistance)
   return {
     shortestDistance: shortestDistance,
-    presensiProhibited: shortestDistance.distance * 1000 > parseFloat(shortestDistance.radius)
+    presensiProhibited: shortestDistance.distance > parseFloat(shortestDistance.radius)
   }
 }
 

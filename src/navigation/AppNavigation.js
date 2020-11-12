@@ -89,6 +89,8 @@ function MyTabBar({ state, descriptors, navigation, auth, presentLogoutAlert, pr
 
           let isPresensiIn = false
           const lastPresensi = presensi.last_presensi
+
+          console.log('presnsi status', isPresensiIn ? 'in' : 'out')
           const dateNow = moment().format('YYYY-MM-DD')
           if (!lastPresensi || !lastPresensi.tanggal) {
             isPresensiIn = true
