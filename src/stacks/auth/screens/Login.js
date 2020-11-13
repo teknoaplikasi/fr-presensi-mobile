@@ -30,8 +30,8 @@ export class Login extends Component {
       form: {
         active: null,
         value: {
-          username: 'edoharb77@gmail.com',
-          password: 'password'
+          username: '',
+          password: ''
         },
         error: {
           username: false,
