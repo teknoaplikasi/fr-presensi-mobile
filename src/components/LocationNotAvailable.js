@@ -54,10 +54,10 @@ class LocationNotAvailable extends React.Component {
         >
           <View style={{ width: '100%', height: h(60), paddingVertical: fs(1.5) }}>
             <Image
-              source={require('../../assets/images/no-permission.png')}
-              // source={{ uri: 'https://stickershop.line-scdn.net/stickershop/v1/product/1217017/LINEStorePC/main.png' }}
+              // source={require('../../assets/images/no-permission.png')}
+              source={{ uri: 'https://stickershop.line-scdn.net/stickershop/v1/product/1217017/LINEStorePC/main.png' }}
               style={{
-                // width: '40%',
+                width: '40%',
                 height: h(30),
                 alignSelf: 'center'
               }}
