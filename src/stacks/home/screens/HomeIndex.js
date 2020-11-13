@@ -159,6 +159,15 @@ export class HomeIndex extends Component {
   getData = async () => {
     const faceStatus = await API.getDev('ValidateFace', true, { user_id: this.props.auth.profile.id })
 
+    const lastPresensi = await API.getDev('LastPresensi', true, {
+      id: this.props.auth.profile.id,
+      perusahaan_id: this.props.auth.profile.perusahaan_id
+    })
+
+
+    if (lastPresensi.data) {
+      this.props.setLastPresensi(lastPresensi.data)
+    }
 
     const announcement = await API.getDev('list/pengumuman', true, { aktif: 'Y' })
     const presensiConfig = await API.getDev('ConfigPresensi', true, { perusahaan_id: this.props.auth.profile.perusahaan_id, user_id: this.props.auth.profile.id })
@@ -838,6 +847,8 @@ const mapDispatchToProps = dispatch => {
     editProfile: (payload) => dispatch({ type: 'EDIT_PROFILE', profile: payload }),
     setPresensiConfig: (payload) => dispatch({ type: 'SET_PRESENSI_CONFIG', presensi_conf: payload }),
     setPresensiPermission: (payload) => dispatch({ type: 'SET_PRESENSI_PERMISSION', permission: payload }),
+
+    setLastPresensi: (payload) => dispatch({ type: 'SET_LAST_PRESENSI', payload: payload })
   }
 }
 
