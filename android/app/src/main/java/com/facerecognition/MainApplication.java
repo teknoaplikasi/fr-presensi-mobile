@@ -9,7 +9,6 @@ import com.imagepicker.ImagePickerPackage;
 import com.reactnativecommunity.rnpermissions.RNPermissionsPackage;
 import com.zmxv.RNSound.RNSoundPackage;
 import com.reactnativecommunity.geolocation.GeolocationPackage;
-import com.rnfs.RNFSPackage;
 import com.horcrux.svg.SvgPackage;
 import org.reactnative.camera.RNCameraPackage;
 import org.reactnative.camera.RNCameraPackage;
