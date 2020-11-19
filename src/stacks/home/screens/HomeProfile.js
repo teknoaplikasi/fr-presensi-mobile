@@ -8,6 +8,7 @@ import { connect } from 'react-redux'
 import Theme from '../../../utils/Theme'
 import ImagePicker from 'react-native-image-picker'
 import { API } from '../../../utils/Api'
+import { ASSETS_URL } from '../../../../config'
 import { simpleToast } from '../../../utils/DisplayHelper'
 
 export class HomeProfile extends Component {
@@ -47,7 +48,7 @@ export class HomeProfile extends Component {
     })
   }
 
-  selectPhotoTapped() {
+  selectPhotoTapped = async () => {
     const options = {
       quality: 1.0,
       maxWidth: 500,
@@ -56,8 +57,8 @@ export class HomeProfile extends Component {
         skipBackup: true
       }
     }
-    ImagePicker.showImagePicker(options, (response) => {
-      console.log('Response = ', response);
+    ImagePicker.showImagePicker(options, async (response) => {
+      // console.log('Response = ', response);
 
       if (response.didCancel) {
         console.log('User cancelled photo picker');
@@ -70,15 +71,26 @@ export class HomeProfile extends Component {
       }
       else {
         let source = { uri: response.uri };
+        let uri = response.uri
+        console.log(uri)
 
+        let upload = await API.changeProfilePhoto(uri)
+        console.log(JSON.stringify(upload))
+        if (upload.success) {
+          this.props.editProfile({
+            foto_profil: upload.data.name
+          })
+        }
+
+        simpleToast(upload.failureMessage)
         // You can also display the image using data:
         // let source = { uri: 'data:image/jpeg;base64,' + response.data };
+        // console.log(response.uri)
+        // this.setState({
 
-        this.setState({
+        //   ImageSource: source
 
-          ImageSource: source
-
-        })
+        // })
       }
     })
   }
@@ -174,6 +186,13 @@ export class HomeProfile extends Component {
   render() {
     const editing = this.state.initialValue.nama != this.state.value.nama || this.state.initialValue.email != this.state.value.email || this.state.initialValue.wanumber != this.state.value.wanumber
     const { value, focus } = this.state
+
+    let imageSource = null
+    if (this.props.auth.profile.foto_profil) {
+      imageSource = { uri: `${ASSETS_URL}/users/foto_profil/${this.props.auth.profile.foto_profil}` }
+    } else {
+      imageSource = require('../../../../assets/images/default-user.png')
+    }
     return (
       <View style={styles.container}>
         <Card style={styles.wrapper}>
@@ -192,7 +211,7 @@ export class HomeProfile extends Component {
               onPress={this.selectPhotoTapped.bind(this)}
             >
               <Image
-                source={{ uri: 'https://image.flaticon.com/icons/png/512/149/149071.png' }}
+                source={imageSource}
                 style={{
                   width: w(20),
                   height: w(20),
@@ -290,6 +309,7 @@ export class HomeProfile extends Component {
                   value={value.wanumber}
                   keyboardType="phone-pad"
                   onFocus={() => this.setInputFocus('wanumber')}
+                  maxLength={13}
                   onChangeText={(e) => this.setInputValue('wanumber', e)}
                   onEndEditing={() => {
                     this.setInputFocus(null)

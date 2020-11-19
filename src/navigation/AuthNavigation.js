@@ -37,7 +37,8 @@ function AuthNavigation() {
           name="RegisterCode"
           component={RegisterCode}
           options={{
-            headerShown: false
+            headerShown: false,
+            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
           }}
         />
         <Stack.Screen

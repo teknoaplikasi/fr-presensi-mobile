@@ -102,10 +102,12 @@ export class HomeIndex extends Component {
 
   syncFace = async () => {
     let { last_presensi } = this.props.presensi
+    console.log('last presensi', last_presensi)
     if (!last_presensi.tanggal && !last_presensi.jam) return
 
     let lastPresensi = `${last_presensi.tanggal} ${last_presensi.jam}`
     const diff = moment().utcOffset(420).diff(lastPresensi, 'hours')
+    console.log('diff', diff)
     if (parseInt(diff) < 24) return
     this.setState({ faceSync: true })
     let face = await API.getDev('FaceId', true, {})
@@ -170,6 +172,7 @@ export class HomeIndex extends Component {
     }
 
     const announcement = await API.getDev('list/pengumuman', true, { aktif: 'Y' })
+    console.log('announcement', JSON.stringify(announcement))
     const presensiConfig = await API.getDev('ConfigPresensi', true, { perusahaan_id: this.props.auth.profile.perusahaan_id, user_id: this.props.auth.profile.id })
     if (!presensiConfig.success)
       simpleToast("Gagal mengambil data konfigurasi presensi")

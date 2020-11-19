@@ -6,6 +6,47 @@ import { useDispatch } from 'react-redux'
 
 
 export const API = {
+  async changeProfilePhoto(uri) {
+    let state = Store.getState()
+    let data = new FormData()
+
+    let createFile = {
+      uri: uri,
+      type: 'image/jpeg',
+      name: `${state.auth.profile.nama}.jpeg`
+    }
+    data.append('foto_profil', createFile)
+    return axios({
+      method: 'POST',
+      url: `${API_URL}ChangeProfile`,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'X-Authorization': state.auth.token
+      },
+      data: data
+    })
+      .then(res => {
+        if (res.success) {
+          return {
+            success: true,
+            result: res.data
+          }
+        }
+
+        else {
+          return res.data
+        }
+
+      })
+      .catch(err => {
+        console.log('err post', JSON.stringify(err))
+        return {
+          success: false,
+          // error: err.response.data,
+          response: err.response
+        }
+      })
+  },
   async getDev(path = '', auth = false, params = {}) {
     path = `${API_URL}${path}`
     // console.log(params)

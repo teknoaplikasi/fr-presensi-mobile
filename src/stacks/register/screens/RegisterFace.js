@@ -282,7 +282,7 @@ export class RegisterFace extends Component {
             >Registrasi</Text>
           </ImageBackground>
 
-          <View
+          <ScrollView
             style={styles.blockAWrapper}
           >
             <View style={{ width: w(70), alignSelf: 'center', marginVertical: fs(4) }}>
@@ -296,7 +296,7 @@ export class RegisterFace extends Component {
               <Text style={{ color: '#3b3b77', textAlign: 'center' }}>Silahkan isi data diri Anda untuk melanjutkan proses verifikasi</Text>
             </View>
 
-            <ScrollView style={styles.form}>
+            <View style={styles.form}>
               <View style={[
                 styles.formInput,
                 {
@@ -395,8 +395,8 @@ export class RegisterFace extends Component {
                   </Button>
                 </View>
               </View>
-            </ScrollView>
-          </View>
+            </View>
+          </ScrollView>
         </TouchableWithoutFeedback>
       </Animated.View >
     )
