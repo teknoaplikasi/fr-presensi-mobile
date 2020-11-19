@@ -7,6 +7,8 @@ publish:android:package:
   script:
     - echo fs.inotify.max_user_watches=524288 | tee -a /etc/sysctl.conf && sysctl -p
     - echo $PLAY_STORE_JSON >> android/app/play-store.json
+    - yarn install
+    - yarn jetify
     - yarn bundle
     - yarn publish-package --no-daemon
   artifacts:
