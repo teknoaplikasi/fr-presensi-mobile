@@ -21,6 +21,7 @@ import { checkAllPermission } from '../../../utils/Permissions';
 import LocationNotAvailable from '../../../components/LocationNotAvailable';
 import Loading from '../../../components/Loading';
 import { AzureFaceAPI } from '../../../utils/Azure';
+import HomeProfileModal from '../components/HomeProfileModal'
 
 
 
@@ -163,6 +164,10 @@ export class HomeIndex extends Component {
 
     const lastPresensi = await API.getDev('LastPresensi', true, {
       id: this.props.auth.profile.id,
+      perusahaan_id: this.props.auth.profile.perusahaan_id
+    })
+
+    const presensiStatus = await API.getDev('ValidatePresensi', true, {
       perusahaan_id: this.props.auth.profile.perusahaan_id
     })
 
@@ -495,7 +500,12 @@ export class HomeIndex extends Component {
             }
           >
             {this.renderModal()}
-            {this.renderModalLogout()}
+            <HomeProfileModal
+              visible={this.state.signoutModalVisible}
+              setSignoutModal={this.setSignoutModal}
+              navigation={this.props.navigation}
+              avatar={this.state.sourceAvatar}
+            />
             <View>
 
               <ImageBackground
@@ -508,7 +518,7 @@ export class HomeIndex extends Component {
                   </TouchableOpacity>
 
                 </View>
-                <Animated.View
+                <View
                   style={[
                     {
                       paddingHorizontal: fs(3),
@@ -519,7 +529,7 @@ export class HomeIndex extends Component {
                       alignSelf: 'center',
                       alignContent: 'center',
                       transform: [
-                        { translateY: this.state.blockA.transitionY }
+                        { translateY: fs(-3) }
                       ]
                     }]}
                 >
@@ -529,16 +539,16 @@ export class HomeIndex extends Component {
                       width: '65%'
                     }}
                   >
-                    <Animated.Text
+                    <Text
                       style={[
                         {
                           fontWeight: 'bold',
                           fontSize: fs(5),
                           color: scheme.primaryText,
-                          opacity: blockA.opacity
+                          opacity: 1
                         }
                       ]}
-                    >{this.state.currentTime}</Animated.Text>
+                    >{this.state.currentTime}</Text>
 
                     <Card style={{
                       overflow: 'hidden',
@@ -579,7 +589,7 @@ export class HomeIndex extends Component {
                       }]}
                     />
                   </View>
-                </Animated.View>
+                </View>
 
 
               </ImageBackground>

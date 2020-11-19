@@ -188,8 +188,10 @@ export class HomeProfile extends Component {
     const { value, focus } = this.state
 
     let imageSource = null
+    console.log(this.props.auth.profile.foto_profil)
     if (this.props.auth.profile.foto_profil) {
       imageSource = { uri: `${ASSETS_URL}/users/foto_profil/${this.props.auth.profile.foto_profil}` }
+      console.log(imageSource)
     } else {
       imageSource = require('../../../../assets/images/default-user.png')
     }
