@@ -114,14 +114,14 @@ export async function currentDeviceLocation() {
       })
     }, (err) => {
       if ('PERMISSION_DENIED' in err && err.PERMISSION_DENIED == 1) {
-        return reject({
+        return resolve({
           success: false,
           locationService: false,
           errorMessage: 'Lokasi tidak aktif',
           debug: JSON.stringify(err)
         })
       }
-      return reject({
+      return resolve({
         success: false,
         locationService: false,
         errorMessage: JSON.stringify(err)
