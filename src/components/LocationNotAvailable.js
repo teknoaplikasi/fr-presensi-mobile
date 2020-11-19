@@ -98,4 +98,4 @@ LocationNotAvailable.defaultProps = {
 }
 
 
-export default LocationNotAvailable
+export default React.memo(LocationNotAvailable)

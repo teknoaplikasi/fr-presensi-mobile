@@ -22,6 +22,7 @@ import LocationNotAvailable from '../../../components/LocationNotAvailable';
 import Loading from '../../../components/Loading';
 import { AzureFaceAPI } from '../../../utils/Azure';
 import HomeProfileModal from '../components/HomeProfileModal'
+import HomePresensiOutModal from '../components/HomePresensiOutModal'
 
 
 
@@ -176,20 +177,20 @@ export class HomeIndex extends Component {
       this.props.setLastPresensi(lastPresensi.data)
     }
 
-    const announcement = await API.getDev('list/pengumuman', true, { aktif: 'Y' })
-    console.log('announcement', JSON.stringify(announcement))
+    // const announcement = await API.getDev('list/pengumuman', true, { aktif: 'Y' })
+    // console.log('announcement', JSON.stringify(announcement))
     const presensiConfig = await API.getDev('ConfigPresensi', true, { perusahaan_id: this.props.auth.profile.perusahaan_id, user_id: this.props.auth.profile.id })
     if (!presensiConfig.success)
       simpleToast("Gagal mengambil data konfigurasi presensi")
     else
       this.props.setPresensiConfig(presensiConfig.data)
 
-    if (!announcement.success) {
-      simpleToast('Gagal mengambil pengumuman perusahaan')
-    }
-    this.setState({
-      announcement: announcement.pengumuman
-    })
+    // if (!announcement.success) {
+    //   simpleToast('Gagal mengambil pengumuman perusahaan')
+    // }
+    // this.setState({
+    //   announcement: announcement.pengumuman
+    // })
     if (!faceStatus.success) {
       simpleToast('Gagal mengambil status wajah')
     }
@@ -322,153 +323,6 @@ export class HomeIndex extends Component {
     this.setState({ signoutModalVisible: !this.state.signoutModalVisible })
   }
 
-  renderModal() {
-    const durasiKerja = `${parseInt(moment(`${this.props.presensi.last_presensi.tanggal} ${this.props.presensi.last_presensi.jam}`).format('H')) - parseInt(moment().format('H'))} jam`
-
-    const { home, hideLogoutAlert } = this.props
-    const primaryText = '#705499'
-    const buttonColor = '#6200ee'
-    return (
-      <Modal
-        testID={'modal'}
-        isVisible={home.logoutAlert}
-        onBackButtonPress={this.setLogoutModal}
-        backdropColor="rgba(0,0,0,.5)"
-        backdropOpacity={0.8}
-        animationInTiming={400}
-        animationOutTiming={400}
-        backdropTransitionInTiming={400}
-        backdropTransitionOutTiming={600}
-      >
-        <View
-          style={styles.modalPresensiOutWrapper}
-        >
-          <Icon name="stopwatch" color="green" size={fs(5)} />
-          <Text style={{ fontWeight: 'bold', color: primaryText }}>Presensi Masuk {this.props.presensi.last_presensi.jam} WIB</Text>
-          <Text style={{ color: primaryText, fontSize: fs(1.5), textAlign: 'center' }}>di {this.props.presensi.last_presensi.lokasi}</Text>
-
-          <Badge warning style={{ alignSelf: 'center', marginBottom: fs(4), marginTop: fs(2) }}>
-            <Text>Durasi {durasiKerja}</Text>
-          </Badge>
-          <Text style={{ color: primaryText, fontWeight: 'bold', fontSize: fs(1.7), textAlign: 'center' }}>Anda akan melakukan presensi keluar, apakah anda yakin?</Text>
-          <View style={styles.modalButton}>
-            <Button
-              style={{
-                alignSelf: 'flex-start',
-                backgroundColor: 'white',
-                justifyContent: 'center',
-                elevation: 0,
-                width: '50%'
-              }}
-              onPress={() => {
-                hideLogoutAlert()
-              }}
-            >
-              <Text style={{ color: buttonColor, fontWeight: 'bold' }}>BATALKAN</Text>
-            </Button>
-            <Button
-              style={{
-                backgroundColor: buttonColor,
-                width: '50%',
-                justifyContent: 'center',
-                borderRadius: 5
-              }}
-              onPress={() => {
-                this.props.navigation.navigate('HomeFacePresensiCamera', {
-                  flag: this.state.isPresensiIn ? 'I' : 'O',
-                  presensiProhibited: this.state.presensiProhibited,
-                  radius: this.state.presensiRadius
-                })
-                hideLogoutAlert()
-
-              }}
-            >
-              <Text>KELUAR</Text>
-            </Button>
-          </View>
-        </View>
-      </Modal>
-    )
-  }
-
-  renderRegisterLink() {
-    return null
-  }
-
-  renderModalLogout() {
-
-    let sourceAvatar = this.state.sourceAvatar
-
-    return (
-
-      <Modal
-        testID={'modal'}
-        isVisible={this.state.signoutModalVisible}
-        onBackButtonPress={this.setSignoutModal}
-        backdropColor="rgba(0,0,0,.5)"
-        backdropOpacity={0.8}
-        animationInTiming={400}
-        animationIn="fadeIn"
-        animationOut="fadeOut"
-        animationOutTiming={400}
-        backdropTransitionInTiming={400}
-        backdropTransitionOutTiming={600}
-        onBackdropPress={this.setSignoutModal}
-      >
-        <View
-          style={{
-            backgroundColor: 'white',
-            width: w(80),
-            borderRadius: fs(2),
-            // paddingHorizontal: fs(5),
-            marginLeft: w(5),
-            paddingVertical: fs(5),
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
-        >
-          <Thumbnail large source={sourceAvatar} />
-          <View style={{ width: '100%' }}>
-            <TouchableOpacityRN
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-              onPress={() => {
-                // alert('profile page coming soom')
-                this.setSignoutModal()
-                this.props.navigation.navigate('HomeProfile')
-              }}
-            >
-              <Icon name="user" color="grey" size={fs(2.5)} />
-              <Text style={{ color: 'grey', paddingVertical: fs(1), paddingHorizontal: fs(2) }}>Profil</Text>
-            </TouchableOpacityRN>
-
-            <TouchableOpacityRN
-              style={{
-                backgroundColor: 'red',
-                justifyContent: 'center',
-                marginHorizontal: fs(2),
-                marginTop: fs(2),
-                borderRadius: 5,
-                paddingVertical: fs(1.3)
-              }}
-              onPress={() => {
-                this.props.resetPresensi()
-                this.props.logout()
-              }}
-            >
-              <Text style={{ color: 'white', textAlign: 'center', width: '100%' }}>Logout</Text>
-            </TouchableOpacityRN>
-          </View>
-        </View>
-
-      </Modal >
-    )
-  }
-
-
 
   render() {
     const { mode, scheme, blockA, locationServiceAlert, faceSync } = this.state
@@ -499,7 +353,16 @@ export class HomeIndex extends Component {
               />
             }
           >
-            {this.renderModal()}
+            <HomePresensiOutModal
+              data={this.props.presensi.last_presensi}
+              homeProps={this.props.home}
+              setLogoutModal={this.setLogoutModal}
+              hideLogoutModal={this.props.hideLogoutAlert}
+              navigation={this.props.navigation}
+              isPresensiIn={this.state.isPresensiIn}
+              presensiProhibited={this.state.presensiProhibited}
+              radius={this.state.presensiRadius}
+            />
             <HomeProfileModal
               visible={this.state.signoutModalVisible}
               setSignoutModal={this.setSignoutModal}
@@ -799,12 +662,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'gray'
   },
 
-  modalButton: {
-    paddingTop: fs(5),
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%'
-  },
 
   bgImageTop: {
     position: 'relative',
@@ -824,15 +681,6 @@ const styles = StyleSheet.create({
 
   bgImageTopIcon: { alignSelf: 'center', height: '100%', paddingTop: fs(1.2) },
 
-  modalPresensiOutWrapper: {
-    backgroundColor: 'white',
-    width: w(90),
-    borderRadius: fs(2),
-    paddingHorizontal: fs(5),
-    paddingVertical: fs(5),
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
 
   contentWrapper: {
     top: fs(-10),
