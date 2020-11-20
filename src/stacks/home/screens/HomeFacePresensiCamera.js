@@ -184,6 +184,7 @@ export class HomeFacePresensiCamera extends Component {
     }
 
     let submit = await API.postDev('add/kehadiran', true, payload)
+    console.log('submit', JSON.stringify(submit))
     if (!submit.success) {
       return this.setState({
         registerStatus: submit.success,

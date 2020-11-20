@@ -6,7 +6,7 @@ import { Badge, Button } from 'native-base'
 import Modal from 'react-native-modal'
 import { responsiveWidth as w, responsiveHeight as h, responsiveFontSize as fs } from 'react-native-responsive-dimensions'
 
-const HomePresensiOutModal = ({ data, homeProps, setLogoutModal, hideLogoutModal, navigation }) => {
+const HomePresensiOutModal = ({ data, homeProps, setLogoutModal, hideLogoutModal, navigation, isPresensiIn, presensiProhibited, radius }) => {
   const durasiKerja = `${parseInt(moment(`${data.tanggal} ${data.jam}`).format('H')) - parseInt(moment().format('H'))} jam`
 
   // const { home, hideLogoutAlert } = this.props
@@ -19,6 +19,8 @@ const HomePresensiOutModal = ({ data, homeProps, setLogoutModal, hideLogoutModal
       onBackButtonPress={setLogoutModal}
       backdropColor="rgba(0,0,0,.5)"
       backdropOpacity={0.8}
+      animationIn="lightSpeedIn"
+      animationOut="lightSpeedOut"
       animationInTiming={400}
       animationOutTiming={400}
       backdropTransitionInTiming={400}
@@ -72,13 +74,13 @@ const HomePresensiOutModal = ({ data, homeProps, setLogoutModal, hideLogoutModal
               navigation.navigate('HomeFacePresensiCamera', {
                 flag: isPresensiIn ? 'I' : 'O',
                 presensiProhibited: presensiProhibited,
-                radius: presensiRadius
+                radius: radius
               })
               hideLogoutModal()
 
             }}
           >
-            <Text>KELUAR</Text>
+            <Text style={{ color: 'white' }}>KELUAR</Text>
           </Button>
         </View>
       </View>

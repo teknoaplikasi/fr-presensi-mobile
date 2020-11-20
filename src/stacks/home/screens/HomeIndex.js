@@ -33,6 +33,7 @@ export class HomeIndex extends Component {
     this.state = {
       //move theme later
       location: null,
+      presensiStatus: { flag: null, message: null },
       faceSync: false,
       locationServiceAlert: null,
       refreshing: true,
@@ -151,6 +152,7 @@ export class HomeIndex extends Component {
   }
 
   testValidasi = async () => {
+    console.log('config', this.props.presensi.presensi_conf)
     const check = await shortestDistance(this.state.location, this.props.presensi.presensi_conf)
 
     this.setState({
@@ -172,6 +174,14 @@ export class HomeIndex extends Component {
       perusahaan_id: this.props.auth.profile.perusahaan_id
     })
 
+    if (presensiStatus.success) {
+      this.setState({
+        presensiStatus: {
+          flag: presensiStatus.flag,
+          message: presensiStatus.failureMessage
+        }
+      })
+    }
 
     if (lastPresensi.data) {
       this.props.setLastPresensi(lastPresensi.data)
@@ -180,6 +190,7 @@ export class HomeIndex extends Component {
     // const announcement = await API.getDev('list/pengumuman', true, { aktif: 'Y' })
     // console.log('announcement', JSON.stringify(announcement))
     const presensiConfig = await API.getDev('ConfigPresensi', true, { perusahaan_id: this.props.auth.profile.perusahaan_id, user_id: this.props.auth.profile.id })
+    console.log('config presensi', presensiConfig)
     if (!presensiConfig.success)
       simpleToast("Gagal mengambil data konfigurasi presensi")
     else
@@ -323,6 +334,79 @@ export class HomeIndex extends Component {
     this.setState({ signoutModalVisible: !this.state.signoutModalVisible })
   }
 
+  renderProfileModal() {
+    let sourceAvatar = this.state.sourceAvatar
+
+    return (
+
+      <Modal
+        testID={'modal'}
+        isVisible={this.state.signoutModalVisible}
+        onBackButtonPress={this.setSignoutModal}
+        backdropColor="rgba(0,0,0,.5)"
+        backdropOpacity={0.8}
+        animationInTiming={400}
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        animationOutTiming={400}
+        backdropTransitionInTiming={400}
+        backdropTransitionOutTiming={600}
+        onBackdropPress={this.setSignoutModal}
+      >
+        <View
+          style={{
+            backgroundColor: 'white',
+            width: w(80),
+            borderRadius: fs(2),
+            // paddingHorizontal: fs(5),
+            marginLeft: w(5),
+            paddingVertical: fs(5),
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <Thumbnail large source={sourceAvatar} />
+          <View style={{ width: '100%' }}>
+            <TouchableOpacityRN
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+              onPress={() => {
+                // alert('profile page coming soom')
+                this.setSignoutModal()
+                this.props.navigation.navigate('HomeProfile')
+              }}
+            >
+              <Icon name="user" color="grey" size={fs(2.5)} />
+              <Text style={{ color: 'grey', paddingVertical: fs(1), paddingHorizontal: fs(2) }}>Profil</Text>
+            </TouchableOpacityRN>
+
+            <TouchableOpacityRN
+              style={{
+                backgroundColor: 'red',
+                justifyContent: 'center',
+                marginHorizontal: fs(2),
+                marginTop: fs(2),
+                borderRadius: 5,
+                paddingVertical: fs(1.3)
+              }}
+              onPress={() => {
+                this.props.resetPresensi()
+                this.props.logout()
+              }}
+            >
+              <Text style={{ color: 'white', textAlign: 'center', width: '100%' }}>Logout</Text>
+            </TouchableOpacityRN>
+          </View>
+        </View>
+
+      </Modal >
+    )
+
+  }
+
 
   render() {
     const { mode, scheme, blockA, locationServiceAlert, faceSync } = this.state
@@ -363,12 +447,17 @@ export class HomeIndex extends Component {
               presensiProhibited={this.state.presensiProhibited}
               radius={this.state.presensiRadius}
             />
-            <HomeProfileModal
+            {/* <HomeProfileModal
               visible={this.state.signoutModalVisible}
               setSignoutModal={this.setSignoutModal}
               navigation={this.props.navigation}
               avatar={this.state.sourceAvatar}
-            />
+              onLogout={() => {
+                this.props.resetPresensi()
+                this.props.logout()
+              }}
+            /> */}
+            {this.renderProfileModal()}
             <View>
 
               <ImageBackground
@@ -470,7 +559,7 @@ export class HomeIndex extends Component {
                   })
                 }}
                 text="Anda belum melakukan presensi hari ini"
-                rIf={auth.profile.face_status == 'Y' && !hasPresensi}
+                rIf={auth.profile.face_status == 'Y' && !hasPresensi && this.state.presensiStatus.flag == 1}
               />
 
               <BadgePresensi
@@ -480,7 +569,7 @@ export class HomeIndex extends Component {
                 text={presensi.last_presensi.lokasi}
                 title={`${presensi.last_presensi.flag == 'I' ? 'Masuk' : 'Keluar'}, ${moment(presensi.last_presensi.tanggal).format('DD MMMM YYYY')}`}
                 subtitle={`${presensi.last_presensi.jam} WIB`}
-                rIf={auth.profile.face_status == 'Y' && hasPresensi}
+                rIf={auth.profile.face_status == 'Y' && hasPresensi && this.state.presensiStatus.flag == 1}
               />
 
               <BadgePresensi
@@ -491,22 +580,23 @@ export class HomeIndex extends Component {
                 onPress={() => {
                   this.props.navigation.navigate('HomeRegisterFaceCamera')
                 }}
-                rIf={auth.profile.face_registered == "N" && auth.profile.face_status == 'N'}
+                rIf={this.state.presensiStatus.flag == 4}
               />
 
               <BadgePresensi
                 bgColor={this.state.primary}
-                text="Registrasi wajah anda sedang dalam proses verifikasi"
-                title="Menunggu Verifikasi"
+                // text="Registrasi wajah anda sedang dalam proses verifikasi"
+                // title={this.state.presensiStatus.message}
+                text={this.state.presensiStatus.message}
                 textColor="white"
-                button="Refresh Status Verifikasi"
+                button="Refresh Status"
                 onPress={() => {
                   this.setState({
                     refreshing: true
                   })
                   this.getData()
                 }}
-                rIf={auth.profile.face_status == 'W'}
+                rIf={this.state.presensiStatus.flag != 1}
               />
               <Row style={{ backgroundColor: scheme.primaryBg, marginVertical: fs(2), height: 'auto' }}>
                 <Col size={6}>

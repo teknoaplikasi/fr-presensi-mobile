@@ -5,7 +5,7 @@ import { Thumbnail } from 'native-base'
 import Icon from 'react-native-vector-icons/FontAwesome5'
 import Modal from 'react-native-modal'
 
-const HomeProfileModal = ({ visible, setSignoutModal, navigation, avatar }) => {
+const HomeProfileModal = ({ visible, setSignoutModal, navigation, avatar, onLogout }) => {
 
   return (
     <Modal
@@ -46,7 +46,7 @@ const HomeProfileModal = ({ visible, setSignoutModal, navigation, avatar }) => {
             }}
             onPress={() => {
               // alert('profile page coming soom')
-              setSignoutModal()
+              setSignoutModal
               navigation.navigate('HomeProfile')
             }}
           >
@@ -63,10 +63,7 @@ const HomeProfileModal = ({ visible, setSignoutModal, navigation, avatar }) => {
               borderRadius: 5,
               paddingVertical: fs(1.3)
             }}
-            onPress={() => {
-              this.props.resetPresensi()
-              this.props.logout()
-            }}
+            onPress={onLogout}
           >
             <Text style={{ color: 'white', textAlign: 'center', width: '100%' }}>Logout</Text>
           </TouchableOpacityRN>
