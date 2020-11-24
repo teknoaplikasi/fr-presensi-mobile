@@ -1,4 +1,4 @@
-package com.facerecognition;
+package com.teknosejahtera.presensi;
 
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;

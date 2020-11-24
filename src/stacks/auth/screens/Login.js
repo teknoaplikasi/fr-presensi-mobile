@@ -1,40 +1,33 @@
 import React, { Component } from 'react'
-import { StyleSheet, Image, View, StatusBar, ImageBackground, Keyboard, Animated, TextInput, ToastAndroid } from 'react-native'
+import { StyleSheet, View, ImageBackground, Keyboard, Animated } from 'react-native'
 import { responsiveWidth as w, responsiveFontSize as fs, responsiveHeight as h } from 'react-native-responsive-dimensions'
-import { Row, Col, Text, Button } from 'native-base';
+import { Row, Col, Text } from 'native-base';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { API } from '../../../utils/Api'
 import { connect } from 'react-redux';
-import Icon from 'react-native-vector-icons/FontAwesome5'
 import { simpleToast } from '../../../utils/DisplayHelper';
 import Loading from '../../../components/Loading'
-import {
-  GoogleSignin,
-  GoogleSigninButton,
-  statusCodes,
-} from '@react-native-community/google-signin';
+import InputText from '../../../components/Form/InputText'
+import InputPassword from '../../../components/Form/InputPassword'
+import Button from '../../../components/Button/Button'
+import RNText from '../../../components/Text/Text'
+import Theme from '../../../utils/Theme';
+
 export class Login extends Component {
   constructor(props) {
     super(props)
 
-
-    GoogleSignin.configure({
-      scopes: ['profile'],
-      webClientId: '738279135375-alhcq30hedcei7gajja83recjbtjgk9i.apps.googleusercontent.com', // client ID of type WEB for your server (needed to verify user ID and offline access)
-      offlineAccess: true, forceCodeForRefreshToken: true, // [Android] related to `serverAuthCode`, read the docs link below *.
-
-    });
 
     this.state = {
       loading: false,
       form: {
         active: null,
         value: {
-          username: '',
+          email: '',
           password: ''
         },
         error: {
-          username: false,
+          email: false,
           password: false
         },
         secureTextEntry: 'password'
@@ -60,30 +53,6 @@ export class Login extends Component {
 
   }
 
-  signIn = async () => {
-    try {
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-      this.setState({ userInfo });
-      console.log(JSON.stringify(userInfo))
-    } catch (error) {
-      console.log('err', JSON.stringify(error))
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        // user cancelled the login flow
-        console.log('error cancel')
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        console.log('error in progress')
-
-        // operation (e.g. sign in) is in progress already
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        // play services not available or outdated
-        console.log('go play')
-
-      } else {
-        // some other error happened
-      }
-    }
-  };
 
   componentDidMount = () => {
     //dev
@@ -170,17 +139,17 @@ export class Login extends Component {
       form: {
         ...prevState.form,
         error: {
-          username: !this.state.form.value.username ? 'Email harus diisi' : false,
+          email: !this.state.form.value.email ? 'Email harus diisi' : false,
           password: !this.state.form.value.password ? 'Password harus diisi' : false,
         }
       }
     }))
 
-    if (!this.state.form.value.username || !this.state.form.value.password)
+    if (!this.state.form.value.email || !this.state.form.value.password)
       return
 
     this.setState({ login: true })
-    let login = await API.getDev('login', false, this.state.form.value)
+    let login = await API.getDev('login', false, { username: this.state.form.value.email, password: this.state.form.value.password })
     if (!login.success) {
       this.setState({ login: false })
       return simpleToast(login.failureMessage)
@@ -267,77 +236,52 @@ export class Login extends Component {
               bottom: h(7),
               left: w(10)
             }}>
-              <Text style={styles.appTitle}>Presensi</Text>
-              <Text style={styles.appTitle}>Attendance</Text>
+              <RNText h3 bold color={Theme.default.primaryColor}>Presensi</RNText>
+              <RNText h3 bold color={Theme.default.primaryColor}>Mandiri</RNText>
             </View>
 
           </View>
           <View style={styles.form}>
-            <View style={[
-              styles.inputLabel,
-              form.active == 'username' && { borderColor: '#6200ee' },
-              form.active != 'username' && { borderColor: 'rgba(172, 172, 172, 0.5)' },
-              form.error.username && { borderColor: 'red' },
-            ]}>
 
-              <TextInput
-                onChangeText={(e) => this.setInputValue('username', e)}
-                value={form.value.username}
-                placeholder="Email"
-                keyboardType="email-address"
-                clearButtonMode="always"
-                onFocus={() => this.setInputFocus('username', null)}
-                onEndEditing={() => {
-                  this.setInputFocus(null)
-                  this.validateField('username')
-                }}
-              />
-            </View>
-            {form.error.username && <Text style={{ color: 'red', fontSize: fs(1.5), marginBottom: fs(1) }}>Email harus diisi</Text>}
-            <View style={[
-              styles.inputLabel,
-              form.active == 'password' && { borderColor: '#6200ee' },
-              form.active != 'password' && { borderColor: 'rgba(172, 172, 172, 0.5)' },
-              form.error.password && { borderColor: 'red' },
-            ]}>
-              <TextInput
-                placeholder="Password"
-                secureTextEntry={form.secureTextEntry == 'password'}
-                onChangeText={(e) => this.setInputValue('password', e)}
-                value={form.value.password}
-                onFocus={() => this.setInputFocus('password', h(5))}
-                onEndEditing={() => {
-                  this.setInputFocus(null)
-                  this.validateField('password')
-                }}
-              />
+            <InputText
+              onChangeText={(e) => this.setInputValue('email', e)}
+              value={form.value.email}
+              placeholder="Email"
+              keyboardType="email-address"
+              onFocus={() => this.setInputFocus('email', null)}
+              onEndEditing={() => {
+                this.setInputFocus(null)
+                this.validateField('email')
+              }}
+              active={form.active == 'email'}
+              error={form.error.email}
+              autoCapitalize="none"
+              color={Theme.default.primaryColor}
+            />
 
+            <InputPassword
+              placeholder="Password"
+              onChangeText={(e) => this.setInputValue('password', e)}
+              value={form.value.password}
+              onFocus={() => this.setInputFocus('password', h(5))}
+              onEndEditing={() => {
+                this.setInputFocus(null)
+                this.validateField('password')
+              }}
+              error={form.error.password}
+              active={form.active == 'password'}
+              autoCapitalize="none"
+              color={Theme.default.primaryColor}
+            />
 
-              <Icon
-                name={form.secureTextEntry ? 'eye-slash' : 'eye'}
-                size={fs(3)}
-                color={form.secureTextEntry ? "rgba(178,178,178,.5)" : 'black'}
-                style={{
-                  position: 'absolute',
-                  right: fs(2),
-                  top: '50%',
-                  transform: [
-                    { translateY: fs(-1.5) }
-                  ]
-                }}
-                onPress={() => this.setSecureTextEntry(form.secureTextEntry ? null : 'password')}
-              />
-            </View>
-
-            {form.error.password && <Text style={{ color: 'red', fontSize: fs(1.5), marginBottom: fs(1) }}>Password harus diisi</Text>}
             <Button
-              full
-              style={{ backgroundColor: this.state.loading ? 'gray' : '#6200ee', borderRadius: 7, marginTop: fs(1) }}
+              label="LOGIN"
+              schema={Theme.default.buttonScheme}
+              textStyle={{ fontWeight: 'bold' }}
+              wrapperStyle={{ marginTop: fs(1.5) }}
               disabled={this.state.loading}
               onPress={this.onUserLogin}
-            >
-              <Text>Login</Text>
-            </Button>
+            />
 
             <Row style={{ marginTop: fs(2) }}>
               <Col>

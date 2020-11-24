@@ -1,7 +1,6 @@
-import { Col, Content, Form, Item, Label, Row, Input, Button } from 'native-base'
+import { Col, Content, Form, Item, Label, Row, Input } from 'native-base'
 import React, { Component } from 'react'
 import { Text, View, StyleSheet, Image, Keyboard, KeyboardAvoidingView, Animated } from 'react-native'
-import { Container, Body } from 'native-base'
 
 import { responsiveWidth as w, responsiveHeight as h, responsiveFontSize as fs } from 'react-native-responsive-dimensions'
 import Theme from '../../../utils/Theme'
@@ -11,6 +10,8 @@ import { simpleToast } from '../../../utils/DisplayHelper'
 import { API } from '../../../utils/Api'
 import Loading from '../../../components/Loading'
 import Icon from 'react-native-vector-icons/FontAwesome5'
+import InputText from '../../../components/Form/InputText'
+import Button from '../../../components/Button/Button'
 
 export class RegisterCode extends Component {
 
@@ -153,44 +154,31 @@ export class RegisterCode extends Component {
           </View>
 
           <View style={styles.wrapperBBlock}>
-            {/* <Content> */}
-            <Form style={styles.form}>
-              <View style={[
-                {
-                  borderColor: active ? '#6200ee' : 'rgba(178,178,178,.5)',
-                  justifyContent: 'space-between',
-                  flexDirection: 'row'
-                },
-                styles.inputLabel
-              ]}>
-                <TextInput
-                  onChangeText={(e) => this.setInputValue(e)}
-                  onFocus={() => this.setInputFocus()}
-                  placeholder="Kode Perusahaan"
-                  onEndEditing={() => {
-                    this.setInputFocus()
-                    this.keyboardWillHide()
-                  }}
-                  value={this.state.value}
-                  style={{
-                    alignSelf: 'flex-start',
-                    width: '100%'
-                  }}
-                />
-
-
-              </View>
+            <View style={styles.form}>
+              <InputText
+                onChangeText={(e) => this.setInputValue(e)}
+                onFocus={() => this.setInputFocus()}
+                placeholder="Kode Perusahaan"
+                onEndEditing={() => {
+                  this.setInputFocus()
+                  this.keyboardWillHide()
+                }}
+                value={this.state.value}
+                active={active == 'nama'}
+                color={Theme.default.primaryColor}
+              />
 
 
               {/* CTA */}
-
-              <Button disabled={this.buttonLoading} size="large" style={{ backgroundColor: '#6200ee', paddingHorizontal: fs(5), paddingVertical: fs(7), borderRadius: 6, alignSelf: 'center' }}
+              <Button
+                disabled={this.buttonLoading}
+                schema={Theme.default.buttonScheme}
+                label="Cek Kode Perusahaan"
+                expand="block"
+                wrapperStyle={{ marginVertical: fs(1.5) }}
                 onPress={this.onPressCheck}
-              >
-                <Text style={{ color: 'white', textTransform: 'capitalize' }}>CEK KODE PERUSAHAAN</Text>
-              </Button>
-            </Form>
-            {/* </Content> */}
+              />
+            </View>
           </View>
         </TouchableWithoutFeedback>
       </Animated.View>

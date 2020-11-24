@@ -1,16 +1,19 @@
 import React, { Component } from 'react'
-import { Text, View, StyleSheet, ImageBackground, ToastAndroid, Image, TextInput, Keyboard, Animated } from 'react-native'
+import { Text, View, StyleSheet, ImageBackground, ToastAndroid, Image, TextInput, Keyboard, Animated, BackHandler } from 'react-native'
 import Theme from '../../../utils/Theme'
 
 import { responsiveWidth as w, responsiveHeight as h, responsiveFontSize as fs } from 'react-native-responsive-dimensions'
 import { API } from '../../../utils/Api'
 import Icon from 'react-native-vector-icons/FontAwesome5'
 import Chip from '../../../components/Chip'
-import { Form, Button } from 'native-base'
 import { ScrollView, TouchableOpacity, TouchableWithoutFeedback } from 'react-native-gesture-handler'
 import { simpleToast } from '../../../utils/DisplayHelper'
 import { CommonActions } from '@react-navigation/native'
 import Loading from '../../../components/Loading'
+import RNText from '../../../components/Text/Text'
+import InputText from '../../../components/Form/InputText'
+import InputPassword from '../../../components/Form/InputPassword'
+import Button from '../../../components/Button/Button'
 
 
 export class RegisterFace extends Component {
@@ -40,6 +43,8 @@ export class RegisterFace extends Component {
         name: ''
       },
 
+      register: false,
+
       active: null
 
     }
@@ -58,12 +63,12 @@ export class RegisterFace extends Component {
   componentDidMount = async () => {
 
     //DEV
-    await this.initValue()
-    this.keyboardWillShowSub = Keyboard.addListener('keyboardWillShow', this.keyboardWillShow)
-    this.keyboardWillHideSub = Keyboard.addListener('keyboardWillHide', this.keyboardWillHide);
-    this.keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      this.keyboardWillHide
-    })
+    // await this.initValue()
+    // this.keyboardWillShowSub = Keyboard.addListener('keyboardWillShow', this.keyboardWillShow)
+    // this.keyboardWillHideSub = Keyboard.addListener('keyboardWillHide', this.keyboardWillHide);
+    // this.keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+    //   this.keyboardWillHide
+    // })
     // END DEV
 
 
@@ -213,7 +218,7 @@ export class RegisterFace extends Component {
   }
 
   onPressRegister = async () => {
-
+    this.setState({ register: true })
     //validate
     let isValid = false
     Object.keys(this.state.value).forEach((key) => {
@@ -224,13 +229,17 @@ export class RegisterFace extends Component {
         isValid = false
     })
 
-    if (!isValid) return
+    if (!isValid)
+      return this.setState({ register: false })
 
     let submit = await API.postDev('register', false, this.state.value)
     console.log(submit)
     if (!submit.success) {
+      this.setState({ register: false })
       return simpleToast(submit.failureMessage)
     }
+
+    this.setState({ register: false })
 
     this.props.navigation.dispatch(
       CommonActions.reset({
@@ -267,19 +276,14 @@ export class RegisterFace extends Component {
             style={{
               width: w(100),
               height: h(35),
-              justifyContent: 'flex-end'
+              justifyContent: 'flex-end',
+              paddingBottom: fs(6),
+              paddingLeft: fs(6)
             }}
             resizeMode="cover"
           >
-            <Text
-              style={{
-                fontWeight: 'bold',
-                fontSize: fs(5),
-                color: '#3b3b77',
-                marginBottom: fs(6),
-                marginLeft: fs(6)
-              }}
-            >Registrasi</Text>
+
+            <RNText h1 bold color="#3b3b77">Registrasi</RNText>
           </ImageBackground>
 
           <ScrollView
@@ -297,71 +301,56 @@ export class RegisterFace extends Component {
             </View>
 
             <View style={styles.form}>
-              <View style={[
-                styles.formInput,
-                {
-                  borderColor: active == 'nama' ? '#6200ee' : 'rgba(172, 172, 172, 0.5)'
-                },
 
-                error.nama && { borderColor: 'red' }
-              ]}>
-                <TextInput
-                  placeholder="Nama"
-                  returnKeyType="next"
-                  onFocus={() => this.setInputFocus('nama')}
-                  onChangeText={(e) => this.setInputValue('nama', e)}
-                  onEndEditing={() => {
-                    this.setInputFocus(null)
-                    this.validateField('nama')
-                  }}
-                  value={this.state.value.nama}
-                />
+              <InputText
+                placeholder="Nama"
+                returnKeyType="next"
+                onFocus={() => this.setInputFocus('nama')}
+                onChangeText={(e) => this.setInputValue('nama', e)}
+                onEndEditing={() => {
+                  this.setInputFocus(null)
+                  this.validateField('nama')
+                }}
+                value={this.state.value.nama}
+                error={this.state.error.nama}
+                color={Theme.default.primaryColor}
+                active={active == 'nama'}
+              />
 
-              </View>
+              <InputText
 
-              {error.nama && <Text style={{ color: 'red', marginBottom: fs(1), fontSize: fs(1.5) }}>{error.nama}</Text>}
-              <View style={[styles.formInput,
-              {
-                borderColor: active == 'email' ? '#6200ee' : 'rgba(172, 172, 172, 0.5)'
-              },
-              error.email && { borderColor: 'red' }
-              ]}>
-                <TextInput
-                  placeholder="Email"
-                  keyboardType="email-address"
-                  returnKeyType="next"
-                  onFocus={() => this.setInputFocus('email', h(20))}
-                  onChangeText={(e) => this.setInputValue('email', e)}
-                  onEndEditing={() => {
-                    this.setInputFocus(null)
-                    this.validateField('email')
-                  }}
-                  value={this.state.value.email}
-                />
-              </View>
-              {error.email && <Text style={{ color: 'red', marginBottom: fs(1), fontSize: fs(1.5) }}>{error.email}</Text>}
-              <View style={[styles.formInput,
-              {
-                borderColor: active == 'password' ? '#6200ee' : 'rgba(172, 172, 172, 0.5)'
-              },
-              error.password && { borderColor: 'red' }
-              ]}>
-                <TextInput
-                  placeholder="Password"
-                  returnKeyType="done"
-                  secureTextEntry={true}
-                  onFocus={() => this.setInputFocus('password', h(30))}
-                  onChangeText={(e) => this.setInputValue('password', e)}
-                  onEndEditing={() => {
-                    this.setInputFocus(null)
-                    this.validateField('password')
-                  }}
-                  value={this.state.value.password}
-                />
-              </View>
+                placeholder="Email"
+                keyboardType="email-address"
+                returnKeyType="next"
+                autoCapitalize="null"
+                onFocus={() => this.setInputFocus('email', h(20))}
+                onChangeText={(e) => this.setInputValue('email', e)}
+                onEndEditing={() => {
+                  this.setInputFocus(null)
+                  this.validateField('email')
+                }}
+                value={this.state.value.email}
+                error={this.state.error.email}
+                color={Theme.default.primaryColor}
+                active={active == 'email'}
+              />
 
-              {error.password && <Text style={{ color: 'red', marginBottom: fs(1), fontSize: fs(1.5) }}>{error.password}</Text>}
+              <InputPassword
 
+                placeholder="Password"
+                returnKeyType="done"
+                secureTextEntry={true}
+                onFocus={() => this.setInputFocus('password', h(30))}
+                onChangeText={(e) => this.setInputValue('password', e)}
+                onEndEditing={() => {
+                  this.setInputFocus(null)
+                  this.validateField('password')
+                }}
+                value={this.state.value.password}
+                error={this.state.error.password}
+                color={Theme.default.primaryColor}
+                active={active == 'password'}
+              />
 
               <TouchableOpacity
                 style={
@@ -384,17 +373,14 @@ export class RegisterFace extends Component {
 
               {error.kota_id && <Text style={{ color: 'red', marginBottom: fs(1), fontSize: fs(1.5) }}>{error.kota_id}</Text>}
 
-              <View style={styles.formButton}>
 
-                <View style={{
-                  width: '100%',
-                  alignSelf: 'center'
-                }}>
-                  <Button full style={{ backgroundColor: '#6200ee', borderRadius: 5 }} onPress={this.onPressRegister}>
-                    <Text style={{ color: 'white' }}>DAFTAR</Text>
-                  </Button>
-                </View>
-              </View>
+              <Button
+                wrapperStyle={{ marginVertical: fs(1.5) }}
+                label="DAFTAR"
+                schema={Theme.default.buttonScheme}
+                onPress={this.onPressRegister}
+                disabled={this.state.register}
+              />
             </View>
           </ScrollView>
         </TouchableWithoutFeedback>

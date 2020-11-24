@@ -10,7 +10,11 @@ const light = {
   primaryBg: '#ffffff',
   secondaryBg: '#ffffff',
   thirdBg: '#ffd565',
-  primaryButton: '#6200ee'
+  primaryButton: '#6200ee',
+  buttonScheme: {
+    backgroundColor: '#6200ee',
+    color: '#ffffff'
+  }
 }
 
 const dark = {

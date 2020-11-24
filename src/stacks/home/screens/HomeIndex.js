@@ -1,11 +1,10 @@
 import React, { Component } from 'react'
 
-import { StyleSheet, Image, View, StatusBar, ImageBackground, Animated, Easing, Appearance, ActivityIndicator, RefreshControl, TouchableOpacity as TouchableOpacityRN } from 'react-native'
+import { StyleSheet, View, StatusBar, ImageBackground, Animated, RefreshControl, TouchableOpacity as TouchableOpacityRN } from 'react-native'
 import { responsiveWidth as w, responsiveHeight as h, responsiveFontSize as fs } from 'react-native-responsive-dimensions'
 import { API } from '../../../utils/Api'
-import { Container, Header, Content, Form, Item, Input, Label, Row, Col, Text, Button, Card, CardItem, Body, Badge, Thumbnail } from 'native-base';
-import { PieChart } from "react-native-chart-kit";
-import { PanGestureHandler, ScrollView, TouchableHighlight, TouchableOpacity } from 'react-native-gesture-handler';
+import { Container, Row, Col, Text, Card, CardItem, Body, Badge, Thumbnail } from 'native-base';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import Theme from '../../../utils/Theme'
 import Modal from 'react-native-modal'
 import Icon from 'react-native-vector-icons/FontAwesome5'
@@ -13,16 +12,14 @@ import { connect } from 'react-redux';
 import moment from 'moment'
 import BadgePresensi from '../components/BadgePresensi'
 import { ASSETS_URL } from '../../../../config'
-
-import Geolocation from '@react-native-community/geolocation'
-import { currentDeviceLocation, geocodeLatLong, geofenceRadius, shortestDistance } from '../../../utils/GeolocationHelper'
+import { currentDeviceLocation, shortestDistance } from '../../../utils/GeolocationHelper'
 import { simpleToast } from '../../../utils/DisplayHelper';
-import { checkAllPermission } from '../../../utils/Permissions';
 import LocationNotAvailable from '../../../components/LocationNotAvailable';
 import Loading from '../../../components/Loading';
 import { AzureFaceAPI } from '../../../utils/Azure';
-import HomeProfileModal from '../components/HomeProfileModal'
+import HomeChart from '../components/HomeChart'
 import HomePresensiOutModal from '../components/HomePresensiOutModal'
+import Button from '../../../components/Button/Button'
 
 
 
@@ -66,18 +63,15 @@ export class HomeIndex extends Component {
 
     }
 
-    this.initChart = this.initChart.bind(this)
+    // this.initChart = this.initChart.bind(this)
     this.setLogoutModal = this.setLogoutModal.bind(this)
     this.setSignoutModal = this.setSignoutModal.bind(this)
     this.syncFace = this.syncFace.bind(this)
   }
 
   componentDidMount = async () => {
-
-    // console.log('did mount')
     this.getData()
     this.initValue()
-    this.initChart()
     this.syncFace()
 
     this.intervalCurrentTime = setInterval(() => {
@@ -92,9 +86,7 @@ export class HomeIndex extends Component {
 
       this.getData()
       this.initValue()
-      this.initChart()
       this.syncFace()
-
       this.intervalCurrentTime = setInterval(() => {
         this.setState({
           currentTime: moment().format('HH:mm:ss')
@@ -105,7 +97,6 @@ export class HomeIndex extends Component {
 
   syncFace = async () => {
     let { last_presensi } = this.props.presensi
-    console.log('last presensi', last_presensi)
     if (!last_presensi.tanggal && !last_presensi.jam) return
 
     let lastPresensi = `${last_presensi.tanggal} ${last_presensi.jam}`
@@ -114,6 +105,7 @@ export class HomeIndex extends Component {
     if (parseInt(diff) < 24) return
     this.setState({ faceSync: true })
     let face = await API.getDev('FaceId', true, {})
+    console.log('face', JSON.stringify(face))
     if (!face.success) {
       this.setState({ faceSync: false })
       return simpleToast('Gagal sinkronasi Face ID')
@@ -134,7 +126,7 @@ export class HomeIndex extends Component {
       wajah_id: face.data[0].id
     })
       .then(res => {
-
+        this.props.setFaceID(newFace.result[0].faceId)
         this.setState({ faceSync: false })
         if (!res.success)
           return simpleToast(res.failureMessage)
@@ -152,7 +144,6 @@ export class HomeIndex extends Component {
   }
 
   testValidasi = async () => {
-    console.log('config', this.props.presensi.presensi_conf)
     const check = await shortestDistance(this.state.location, this.props.presensi.presensi_conf)
 
     this.setState({
@@ -282,49 +273,6 @@ export class HomeIndex extends Component {
     }
   }
 
-  initChart = () => {
-    const attendance = [
-      {
-        name: "Terlambat",
-        population: 300,
-        color: 'orange',
-        legendFontColor: "#7F7F7F",
-        legendFontSize: 15,
-      },
-      {
-        name: "Ontime",
-        population: 60,
-        color: "#9b5df5",
-        legendFontColor: "#7F7F7F",
-        legendFontSize: 15
-      },
-
-    ];
-
-    const presensi = [
-      {
-        name: "Presensi",
-        population: 160,
-        color: 'orange',
-        legendFontColor: "#7F7F7F",
-        legendFontSize: 15,
-      },
-      {
-        name: "Abstain",
-        population: 200,
-        color: "#9b5df5",
-        legendFontColor: "#7F7F7F",
-        legendFontSize: 15
-      },
-
-    ];
-    this.setState({
-      chart: {
-        attendance: attendance,
-        presensi: presensi
-      }
-    })
-  }
 
   setLogoutModal = () => {
     this.setState({ logoutModalVisible: !this.state.logoutModalVisible })
@@ -358,7 +306,6 @@ export class HomeIndex extends Component {
             backgroundColor: 'white',
             width: w(80),
             borderRadius: fs(2),
-            // paddingHorizontal: fs(5),
             marginLeft: w(5),
             paddingVertical: fs(5),
             justifyContent: 'center',
@@ -367,38 +314,33 @@ export class HomeIndex extends Component {
         >
           <Thumbnail large source={sourceAvatar} />
           <View style={{ width: '100%' }}>
-            <TouchableOpacityRN
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
+
+            <Button
+              wrapperStyle={{ paddingHorizontal: fs(2), marginVertical: fs(1.5) }}
+              label={this.props.auth.profile.nama}
               onPress={() => {
-                // alert('profile page coming soom')
                 this.setSignoutModal()
                 this.props.navigation.navigate('HomeProfile')
               }}
-            >
-              <Icon name="user" color="grey" size={fs(2.5)} />
-              <Text style={{ color: 'grey', paddingVertical: fs(1), paddingHorizontal: fs(2) }}>Profil</Text>
-            </TouchableOpacityRN>
-
-            <TouchableOpacityRN
-              style={{
-                backgroundColor: 'red',
-                justifyContent: 'center',
-                marginHorizontal: fs(2),
-                marginTop: fs(2),
-                borderRadius: 5,
-                paddingVertical: fs(1.3)
+              schema={{
+                color: 'grey',
+                backgroundColor: 'white'
               }}
+              pressableStyle={{ elevation: 0 }}
+              icon="user"
+            />
+            <Button
+              wrapperStyle={{ paddingHorizontal: fs(2), marginVertical: fs(1) }}
+              label="Logout"
               onPress={() => {
                 this.props.resetPresensi()
                 this.props.logout()
               }}
-            >
-              <Text style={{ color: 'white', textAlign: 'center', width: '100%' }}>Logout</Text>
-            </TouchableOpacityRN>
+              schema={{
+                color: '#fff',
+                backgroundColor: 'red'
+              }}
+            />
           </View>
         </View>
 
@@ -447,16 +389,6 @@ export class HomeIndex extends Component {
               presensiProhibited={this.state.presensiProhibited}
               radius={this.state.presensiRadius}
             />
-            {/* <HomeProfileModal
-              visible={this.state.signoutModalVisible}
-              setSignoutModal={this.setSignoutModal}
-              navigation={this.props.navigation}
-              avatar={this.state.sourceAvatar}
-              onLogout={() => {
-                this.props.resetPresensi()
-                this.props.logout()
-              }}
-            /> */}
             {this.renderProfileModal()}
             <View>
 
@@ -598,112 +530,9 @@ export class HomeIndex extends Component {
                 }}
                 rIf={this.state.presensiStatus.flag != 1}
               />
-              <Row style={{ backgroundColor: scheme.primaryBg, marginVertical: fs(2), height: 'auto' }}>
-                <Col size={6}>
-                  <Card style={{ borderRadius: fs(1), overflow: 'hidden', }}>
-                    <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
-                      <Body style={{ display: 'flex', justifyContent: 'center' }}>
-                        <PieChart
-                          data={this.state.chart.attendance}
-                          width={100}
-                          height={100}
-                          hasLegend={false}
-                          chartConfig={{
-                            backgroundGradientFrom: "#1E2923",
-                            backgroundGradientFromOpacity: 0,
-                            backgroundGradientTo: "#08130D",
-                            backgroundGradientToOpacity: 0.5,
-                            color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
-                            strokeWidth: 2, // optional, default 3
-                            barPercentage: 0.5,
-                            useShadowColorFromDataset: false // optional
-                          }}
-                          accessor="population"
-                          backgroundColor="transparent"
-                          paddingLeft="30"
-                          absolute
-                          style={{
-                            alignSelf: 'center'
-                          }}
-                        />
 
-                        <Text style={{
-                          alignSelf: 'center',
-                          color: '#493a76',
-                          fontWeight: 'bold',
-                          fontSize: fs(1.8)
-                        }}>ATTENDANCE</Text>
+              <HomeChart />
 
-                        {/* LEGEND */}
-                        <Row style={{ marginVertical: fs(1) }}>
-                          {
-                            this.state.chart.attendance.map((data, i) => (
-                              <Col style={{ flexDirection: 'row' }} key={i}>
-                                <View style={{ width: fs(1.5), height: fs(1.5), backgroundColor: data.color, borderRadius: 1.5 }}
-                                />
-                                <Text style={{ fontSize: fs(1.3), paddingLeft: fs(.5) }}>{data.name}</Text>
-                              </Col>
-                            ))
-                          }
-                        </Row>
-                      </Body>
-                    </CardItem>
-                  </Card>
-                </Col>
-                <Col size={6}>
-                  <Card style={{ borderRadius: fs(1), overflow: 'hidden' }}>
-                    <CardItem style={{ backgroundColor: scheme.secondaryBg }}>
-                      <Body style={{ display: 'flex', justifyContent: 'center' }}>
-                        <PieChart
-                          data={this.state.chart.presensi}
-                          width={100}
-                          height={100}
-                          hasLegend={false}
-                          chartConfig={{
-                            backgroundGradientFrom: "#1E2923",
-                            backgroundGradientFromOpacity: 0,
-                            backgroundGradientTo: "#08130D",
-                            backgroundGradientToOpacity: 0.5,
-                            color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
-                            strokeWidth: 2, // optional, default 3
-                            barPercentage: 0.5,
-                            useShadowColorFromDataset: false // optional
-                          }}
-                          accessor="population"
-                          backgroundColor="transparent"
-                          paddingLeft="30"
-                          absolute
-                          style={{
-                            alignSelf: 'center'
-                          }}
-                        />
-
-
-                        <Text style={{
-                          alignSelf: 'center',
-                          color: '#493a76',
-                          fontWeight: 'bold',
-                          fontSize: fs(1.8)
-                        }}>PRESENSI</Text>
-
-                        {/* LEGEND */}
-                        <Row style={{ marginVertical: fs(1) }}>
-                          {
-                            this.state.chart.presensi.map((data, i) => (
-                              <Col style={{ flexDirection: 'row' }} key={i}>
-                                <View style={{ width: fs(1.5), height: fs(1.5), backgroundColor: data.color, borderRadius: 1.5 }}
-                                />
-                                <Text style={{ fontSize: fs(1.3), paddingLeft: fs(.5) }}>{data.name}</Text>
-                              </Col>
-                            ))
-                          }
-                        </Row>
-                      </Body>
-                    </CardItem>
-                  </Card>
-                </Col>
-
-              </Row>
 
               <Row style={{ height: 'auto' }}>
                 {this.state.announcement.map((list, i) => (
@@ -799,7 +628,8 @@ const mapDispatchToProps = dispatch => {
     setPresensiConfig: (payload) => dispatch({ type: 'SET_PRESENSI_CONFIG', presensi_conf: payload }),
     setPresensiPermission: (payload) => dispatch({ type: 'SET_PRESENSI_PERMISSION', permission: payload }),
 
-    setLastPresensi: (payload) => dispatch({ type: 'SET_LAST_PRESENSI', payload: payload })
+    setLastPresensi: (payload) => dispatch({ type: 'SET_LAST_PRESENSI', payload: payload }),
+    setFaceID: (payload) => dispatch({ type: 'SET_FACE_ID', faceId: payload })
   }
 }
 

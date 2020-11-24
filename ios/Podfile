@@ -24,6 +24,8 @@ target 'FaceRecognition' do
 
   pod 'RNGoogleSignin', :path => '../node_modules/@react-native-community/google-signin'
 
+  pod 'RNFirebase', :path => '../node_modules/react-native-firebase'
+
   target 'FaceRecognitionTests' do
     inherit! :complete
     # Pods for testing

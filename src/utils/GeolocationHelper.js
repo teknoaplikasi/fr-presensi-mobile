@@ -1,8 +1,5 @@
 import axios from 'axios'
 import { GMAPS_KEY } from '../../config'
-import {
-  circleContainsLocation
-} from "@goparrot/react-native-geometry-utils";
 import Geolocation from '@react-native-community/geolocation';
 
 
@@ -30,25 +27,6 @@ export function geocodeLatLong(latitude, longitude) {
       }
     })
 
-}
-
-export async function geofenceRadius(geoIn, geoDevice, radius) {
-  const cicle = {
-    center: {
-      latitude: geoIn.latitude,
-      longitude: geoIn.longitude,
-    },
-    radius: radius
-  }
-
-  const pointIn = {
-    latitude: geoDevice.latitude,
-    longitude: geoDevice.longitude,
-  }
-
-  let isValid = await circleContainsLocation(pointIn, cicle)
-  console.log('helper is valid', isValid)
-  return isValid
 }
 
 export async function distanceBeetweenCoordinates(lat1, lon1, lat2, lon2, unit = "K") {
